@@ -258,6 +258,7 @@ func (e ListTasksParamsStatus) Valid() bool {
 type AccumulatorUpdate struct {
 	Id                   *int64                 `json:"id,omitempty"`
 	Name                 *string                `json:"name,omitempty"`
+	Update               *string                `json:"update,omitempty"`
 	Value                *string                `json:"value,omitempty"`
 	AdditionalProperties map[string]interface{} `json:"-"`
 }
@@ -265,7 +266,11 @@ type AccumulatorUpdate struct {
 // Application defines model for Application.
 type Application struct {
 	Attempts             *[]ApplicationAttempt  `json:"attempts,omitempty"`
+	CoresGranted         *int                   `json:"coresGranted,omitempty"`
+	CoresPerExecutor     *int                   `json:"coresPerExecutor,omitempty"`
 	Id                   *string                `json:"id,omitempty"`
+	MaxCores             *int                   `json:"maxCores,omitempty"`
+	MemoryPerExecutorMB  *int                   `json:"memoryPerExecutorMB,omitempty"`
 	Name                 *string                `json:"name,omitempty"`
 	AdditionalProperties map[string]interface{} `json:"-"`
 }
@@ -273,6 +278,7 @@ type Application struct {
 // ApplicationAttempt defines model for ApplicationAttempt.
 type ApplicationAttempt struct {
 	AppSparkVersion      *string                `json:"appSparkVersion,omitempty"`
+	AttemptId            *string                `json:"attemptId,omitempty"`
 	Completed            *bool                  `json:"completed,omitempty"`
 	Duration             *int64                 `json:"duration,omitempty"`
 	EndTime              *string                `json:"endTime,omitempty"`
@@ -560,6 +566,7 @@ type SQLPlanNode struct {
 	Metrics              *[]SQLPlanNode_Metrics_Item `json:"metrics,omitempty"`
 	NodeId               *int                        `json:"nodeId,omitempty"`
 	NodeName             *string                     `json:"nodeName,omitempty"`
+	WholeStageCodegenId  *int64                      `json:"wholeStageCodegenId,omitempty"`
 	AdditionalProperties map[string]interface{}      `json:"-"`
 }
 
@@ -606,11 +613,22 @@ type ShuffleWriteMetrics struct {
 	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
+// SpeculationStageSummary defines model for SpeculationStageSummary.
+type SpeculationStageSummary struct {
+	NumActiveTasks       *int                   `json:"numActiveTasks,omitempty"`
+	NumCompletedTasks    *int                   `json:"numCompletedTasks,omitempty"`
+	NumFailedTasks       *int                   `json:"numFailedTasks,omitempty"`
+	NumKilledTasks       *int                   `json:"numKilledTasks,omitempty"`
+	NumTasks             *int                   `json:"numTasks,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
 // StageData defines model for StageData.
 type StageData struct {
 	AccumulatorUpdates         *[]AccumulatorUpdate `json:"accumulatorUpdates,omitempty"`
 	AttemptId                  *int                 `json:"attemptId,omitempty"`
 	CompletionTime             *string              `json:"completionTime,omitempty"`
+	Description                *string              `json:"description,omitempty"`
 	Details                    *string              `json:"details,omitempty"`
 	DiskBytesSpilled           *int64               `json:"diskBytesSpilled,omitempty"`
 	ExecutorCpuTime            *int64               `json:"executorCpuTime,omitempty"`
@@ -623,6 +641,7 @@ type StageData struct {
 
 	// ExecutorSummary Map of executor ID to executor stage summary.
 	ExecutorSummary                  *map[string]ExecutorStageSummary `json:"executorSummary,omitempty"`
+	FailureReason                    *string                          `json:"failureReason,omitempty"`
 	FirstTaskLaunchedTime            *string                          `json:"firstTaskLaunchedTime,omitempty"`
 	InputBytes                       *int64                           `json:"inputBytes,omitempty"`
 	InputRecords                     *int64                           `json:"inputRecords,omitempty"`
@@ -668,6 +687,7 @@ type StageData struct {
 	ShuffleWriteBytes                *int64                           `json:"shuffleWriteBytes,omitempty"`
 	ShuffleWriteRecords              *int64                           `json:"shuffleWriteRecords,omitempty"`
 	ShuffleWriteTime                 *int64                           `json:"shuffleWriteTime,omitempty"`
+	SpeculationSummary               *SpeculationStageSummary         `json:"speculationSummary,omitempty"`
 	StageId                          *int                             `json:"stageId,omitempty"`
 	Status                           *StageDataStatus                 `json:"status,omitempty"`
 	SubmissionTime                   *string                          `json:"submissionTime,omitempty"`
@@ -688,6 +708,7 @@ type StreamingBatch struct {
 	BatchDuration         *int64                 `json:"batchDuration,omitempty"`
 	BatchId               *int                   `json:"batchId,omitempty"`
 	BatchTime             *string                `json:"batchTime,omitempty"`
+	FirstFailureReason    *string                `json:"firstFailureReason,omitempty"`
 	InputSize             *int64                 `json:"inputSize,omitempty"`
 	NumActiveOutputOps    *int                   `json:"numActiveOutputOps,omitempty"`
 	NumCompletedOutputOps *int                   `json:"numCompletedOutputOps,omitempty"`
@@ -706,6 +727,7 @@ type StreamingOutputOperation struct {
 	Duration             *int64                 `json:"duration,omitempty"`
 	EndTime              *string                `json:"endTime,omitempty"`
 	FailureReason        *string                `json:"failureReason,omitempty"`
+	JobIds               *[]int                 `json:"jobIds,omitempty"`
 	Name                 *string                `json:"name,omitempty"`
 	OutputOpId           *int                   `json:"outputOpId,omitempty"`
 	StartTime            *string                `json:"startTime,omitempty"`
@@ -714,6 +736,8 @@ type StreamingOutputOperation struct {
 
 // StreamingReceiver defines model for StreamingReceiver.
 type StreamingReceiver struct {
+	AvgEventRate         *float32               `json:"avgEventRate,omitempty"`
+	EventRates           *[][]float32           `json:"eventRates,omitempty"`
 	ExecutorHost         *string                `json:"executorHost,omitempty"`
 	ExecutorId           *string                `json:"executorId,omitempty"`
 	IsActive             *bool                  `json:"isActive,omitempty"`
@@ -749,6 +773,7 @@ type Task struct {
 	AccumulatorUpdates   *[]AccumulatorUpdate   `json:"accumulatorUpdates,omitempty"`
 	Attempt              *int                   `json:"attempt,omitempty"`
 	Duration             *int64                 `json:"duration,omitempty"`
+	ErrorMessage         *string                `json:"errorMessage,omitempty"`
 	ExecutorId           *string                `json:"executorId,omitempty"`
 	ExecutorLogs         *map[string]string     `json:"executorLogs,omitempty"`
 	GettingResultTime    *int64                 `json:"gettingResultTime,omitempty"`
@@ -756,6 +781,7 @@ type Task struct {
 	Index                *int                   `json:"index,omitempty"`
 	LaunchTime           *string                `json:"launchTime,omitempty"`
 	PartitionId          *int                   `json:"partitionId,omitempty"`
+	ResultFetchStart     *string                `json:"resultFetchStart,omitempty"`
 	SchedulerDelay       *int64                 `json:"schedulerDelay,omitempty"`
 	Speculative          *bool                  `json:"speculative,omitempty"`
 	Status               *string                `json:"status,omitempty"`
@@ -1002,6 +1028,14 @@ func (a *AccumulatorUpdate) UnmarshalJSON(b []byte) error {
 		delete(object, "name")
 	}
 
+	if raw, found := object["update"]; found {
+		err = json.Unmarshal(raw, &a.Update)
+		if err != nil {
+			return fmt.Errorf("error reading 'update': %w", err)
+		}
+		delete(object, "update")
+	}
+
 	if raw, found := object["value"]; found {
 		err = json.Unmarshal(raw, &a.Value)
 		if err != nil {
@@ -1040,6 +1074,13 @@ func (a AccumulatorUpdate) MarshalJSON() ([]byte, error) {
 		object["name"], err = json.Marshal(a.Name)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
+	if a.Update != nil {
+		object["update"], err = json.Marshal(a.Update)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'update': %w", err)
 		}
 	}
 
@@ -1092,12 +1133,44 @@ func (a *Application) UnmarshalJSON(b []byte) error {
 		delete(object, "attempts")
 	}
 
+	if raw, found := object["coresGranted"]; found {
+		err = json.Unmarshal(raw, &a.CoresGranted)
+		if err != nil {
+			return fmt.Errorf("error reading 'coresGranted': %w", err)
+		}
+		delete(object, "coresGranted")
+	}
+
+	if raw, found := object["coresPerExecutor"]; found {
+		err = json.Unmarshal(raw, &a.CoresPerExecutor)
+		if err != nil {
+			return fmt.Errorf("error reading 'coresPerExecutor': %w", err)
+		}
+		delete(object, "coresPerExecutor")
+	}
+
 	if raw, found := object["id"]; found {
 		err = json.Unmarshal(raw, &a.Id)
 		if err != nil {
 			return fmt.Errorf("error reading 'id': %w", err)
 		}
 		delete(object, "id")
+	}
+
+	if raw, found := object["maxCores"]; found {
+		err = json.Unmarshal(raw, &a.MaxCores)
+		if err != nil {
+			return fmt.Errorf("error reading 'maxCores': %w", err)
+		}
+		delete(object, "maxCores")
+	}
+
+	if raw, found := object["memoryPerExecutorMB"]; found {
+		err = json.Unmarshal(raw, &a.MemoryPerExecutorMB)
+		if err != nil {
+			return fmt.Errorf("error reading 'memoryPerExecutorMB': %w", err)
+		}
+		delete(object, "memoryPerExecutorMB")
 	}
 
 	if raw, found := object["name"]; found {
@@ -1134,10 +1207,38 @@ func (a Application) MarshalJSON() ([]byte, error) {
 		}
 	}
 
+	if a.CoresGranted != nil {
+		object["coresGranted"], err = json.Marshal(a.CoresGranted)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'coresGranted': %w", err)
+		}
+	}
+
+	if a.CoresPerExecutor != nil {
+		object["coresPerExecutor"], err = json.Marshal(a.CoresPerExecutor)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'coresPerExecutor': %w", err)
+		}
+	}
+
 	if a.Id != nil {
 		object["id"], err = json.Marshal(a.Id)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'id': %w", err)
+		}
+	}
+
+	if a.MaxCores != nil {
+		object["maxCores"], err = json.Marshal(a.MaxCores)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'maxCores': %w", err)
+		}
+	}
+
+	if a.MemoryPerExecutorMB != nil {
+		object["memoryPerExecutorMB"], err = json.Marshal(a.MemoryPerExecutorMB)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'memoryPerExecutorMB': %w", err)
 		}
 	}
 
@@ -1188,6 +1289,14 @@ func (a *ApplicationAttempt) UnmarshalJSON(b []byte) error {
 			return fmt.Errorf("error reading 'appSparkVersion': %w", err)
 		}
 		delete(object, "appSparkVersion")
+	}
+
+	if raw, found := object["attemptId"]; found {
+		err = json.Unmarshal(raw, &a.AttemptId)
+		if err != nil {
+			return fmt.Errorf("error reading 'attemptId': %w", err)
+		}
+		delete(object, "attemptId")
 	}
 
 	if raw, found := object["completed"]; found {
@@ -1285,6 +1394,13 @@ func (a ApplicationAttempt) MarshalJSON() ([]byte, error) {
 		object["appSparkVersion"], err = json.Marshal(a.AppSparkVersion)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'appSparkVersion': %w", err)
+		}
+	}
+
+	if a.AttemptId != nil {
+		object["attemptId"], err = json.Marshal(a.AttemptId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'attemptId': %w", err)
 		}
 	}
 
@@ -4951,6 +5067,14 @@ func (a *SQLPlanNode) UnmarshalJSON(b []byte) error {
 		delete(object, "nodeName")
 	}
 
+	if raw, found := object["wholeStageCodegenId"]; found {
+		err = json.Unmarshal(raw, &a.WholeStageCodegenId)
+		if err != nil {
+			return fmt.Errorf("error reading 'wholeStageCodegenId': %w", err)
+		}
+		delete(object, "wholeStageCodegenId")
+	}
+
 	if len(object) != 0 {
 		a.AdditionalProperties = make(map[string]interface{})
 		for fieldName, fieldBuf := range object {
@@ -4988,6 +5112,13 @@ func (a SQLPlanNode) MarshalJSON() ([]byte, error) {
 		object["nodeName"], err = json.Marshal(a.NodeName)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'nodeName': %w", err)
+		}
+	}
+
+	if a.WholeStageCodegenId != nil {
+		object["wholeStageCodegenId"], err = json.Marshal(a.WholeStageCodegenId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'wholeStageCodegenId': %w", err)
 		}
 	}
 
@@ -5557,6 +5688,134 @@ func (a ShuffleWriteMetrics) MarshalJSON() ([]byte, error) {
 	return json.Marshal(object)
 }
 
+// Getter for additional properties for SpeculationStageSummary. Returns the specified
+// element and whether it was found
+func (a SpeculationStageSummary) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for SpeculationStageSummary
+func (a *SpeculationStageSummary) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for SpeculationStageSummary to handle AdditionalProperties
+func (a *SpeculationStageSummary) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["numActiveTasks"]; found {
+		err = json.Unmarshal(raw, &a.NumActiveTasks)
+		if err != nil {
+			return fmt.Errorf("error reading 'numActiveTasks': %w", err)
+		}
+		delete(object, "numActiveTasks")
+	}
+
+	if raw, found := object["numCompletedTasks"]; found {
+		err = json.Unmarshal(raw, &a.NumCompletedTasks)
+		if err != nil {
+			return fmt.Errorf("error reading 'numCompletedTasks': %w", err)
+		}
+		delete(object, "numCompletedTasks")
+	}
+
+	if raw, found := object["numFailedTasks"]; found {
+		err = json.Unmarshal(raw, &a.NumFailedTasks)
+		if err != nil {
+			return fmt.Errorf("error reading 'numFailedTasks': %w", err)
+		}
+		delete(object, "numFailedTasks")
+	}
+
+	if raw, found := object["numKilledTasks"]; found {
+		err = json.Unmarshal(raw, &a.NumKilledTasks)
+		if err != nil {
+			return fmt.Errorf("error reading 'numKilledTasks': %w", err)
+		}
+		delete(object, "numKilledTasks")
+	}
+
+	if raw, found := object["numTasks"]; found {
+		err = json.Unmarshal(raw, &a.NumTasks)
+		if err != nil {
+			return fmt.Errorf("error reading 'numTasks': %w", err)
+		}
+		delete(object, "numTasks")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for SpeculationStageSummary to handle AdditionalProperties
+func (a SpeculationStageSummary) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.NumActiveTasks != nil {
+		object["numActiveTasks"], err = json.Marshal(a.NumActiveTasks)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'numActiveTasks': %w", err)
+		}
+	}
+
+	if a.NumCompletedTasks != nil {
+		object["numCompletedTasks"], err = json.Marshal(a.NumCompletedTasks)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'numCompletedTasks': %w", err)
+		}
+	}
+
+	if a.NumFailedTasks != nil {
+		object["numFailedTasks"], err = json.Marshal(a.NumFailedTasks)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'numFailedTasks': %w", err)
+		}
+	}
+
+	if a.NumKilledTasks != nil {
+		object["numKilledTasks"], err = json.Marshal(a.NumKilledTasks)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'numKilledTasks': %w", err)
+		}
+	}
+
+	if a.NumTasks != nil {
+		object["numTasks"], err = json.Marshal(a.NumTasks)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'numTasks': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
 // Getter for additional properties for StageData. Returns the specified
 // element and whether it was found
 func (a StageData) Get(fieldName string) (value interface{}, found bool) {
@@ -5604,6 +5863,14 @@ func (a *StageData) UnmarshalJSON(b []byte) error {
 			return fmt.Errorf("error reading 'completionTime': %w", err)
 		}
 		delete(object, "completionTime")
+	}
+
+	if raw, found := object["description"]; found {
+		err = json.Unmarshal(raw, &a.Description)
+		if err != nil {
+			return fmt.Errorf("error reading 'description': %w", err)
+		}
+		delete(object, "description")
 	}
 
 	if raw, found := object["details"]; found {
@@ -5668,6 +5935,14 @@ func (a *StageData) UnmarshalJSON(b []byte) error {
 			return fmt.Errorf("error reading 'executorSummary': %w", err)
 		}
 		delete(object, "executorSummary")
+	}
+
+	if raw, found := object["failureReason"]; found {
+		err = json.Unmarshal(raw, &a.FailureReason)
+		if err != nil {
+			return fmt.Errorf("error reading 'failureReason': %w", err)
+		}
+		delete(object, "failureReason")
 	}
 
 	if raw, found := object["firstTaskLaunchedTime"]; found {
@@ -6030,6 +6305,14 @@ func (a *StageData) UnmarshalJSON(b []byte) error {
 		delete(object, "shuffleWriteTime")
 	}
 
+	if raw, found := object["speculationSummary"]; found {
+		err = json.Unmarshal(raw, &a.SpeculationSummary)
+		if err != nil {
+			return fmt.Errorf("error reading 'speculationSummary': %w", err)
+		}
+		delete(object, "speculationSummary")
+	}
+
 	if raw, found := object["stageId"]; found {
 		err = json.Unmarshal(raw, &a.StageId)
 		if err != nil {
@@ -6110,6 +6393,13 @@ func (a StageData) MarshalJSON() ([]byte, error) {
 		}
 	}
 
+	if a.Description != nil {
+		object["description"], err = json.Marshal(a.Description)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'description': %w", err)
+		}
+	}
+
 	if a.Details != nil {
 		object["details"], err = json.Marshal(a.Details)
 		if err != nil {
@@ -6163,6 +6453,13 @@ func (a StageData) MarshalJSON() ([]byte, error) {
 		object["executorSummary"], err = json.Marshal(a.ExecutorSummary)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'executorSummary': %w", err)
+		}
+	}
+
+	if a.FailureReason != nil {
+		object["failureReason"], err = json.Marshal(a.FailureReason)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'failureReason': %w", err)
 		}
 	}
 
@@ -6481,6 +6778,13 @@ func (a StageData) MarshalJSON() ([]byte, error) {
 		}
 	}
 
+	if a.SpeculationSummary != nil {
+		object["speculationSummary"], err = json.Marshal(a.SpeculationSummary)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'speculationSummary': %w", err)
+		}
+	}
+
 	if a.StageId != nil {
 		object["stageId"], err = json.Marshal(a.StageId)
 		if err != nil {
@@ -6572,6 +6876,14 @@ func (a *StreamingBatch) UnmarshalJSON(b []byte) error {
 			return fmt.Errorf("error reading 'batchTime': %w", err)
 		}
 		delete(object, "batchTime")
+	}
+
+	if raw, found := object["firstFailureReason"]; found {
+		err = json.Unmarshal(raw, &a.FirstFailureReason)
+		if err != nil {
+			return fmt.Errorf("error reading 'firstFailureReason': %w", err)
+		}
+		delete(object, "firstFailureReason")
 	}
 
 	if raw, found := object["inputSize"]; found {
@@ -6683,6 +6995,13 @@ func (a StreamingBatch) MarshalJSON() ([]byte, error) {
 		object["batchTime"], err = json.Marshal(a.BatchTime)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'batchTime': %w", err)
+		}
+	}
+
+	if a.FirstFailureReason != nil {
+		object["firstFailureReason"], err = json.Marshal(a.FirstFailureReason)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'firstFailureReason': %w", err)
 		}
 	}
 
@@ -6815,6 +7134,14 @@ func (a *StreamingOutputOperation) UnmarshalJSON(b []byte) error {
 		delete(object, "failureReason")
 	}
 
+	if raw, found := object["jobIds"]; found {
+		err = json.Unmarshal(raw, &a.JobIds)
+		if err != nil {
+			return fmt.Errorf("error reading 'jobIds': %w", err)
+		}
+		delete(object, "jobIds")
+	}
+
 	if raw, found := object["name"]; found {
 		err = json.Unmarshal(raw, &a.Name)
 		if err != nil {
@@ -6886,6 +7213,13 @@ func (a StreamingOutputOperation) MarshalJSON() ([]byte, error) {
 		}
 	}
 
+	if a.JobIds != nil {
+		object["jobIds"], err = json.Marshal(a.JobIds)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'jobIds': %w", err)
+		}
+	}
+
 	if a.Name != nil {
 		object["name"], err = json.Marshal(a.Name)
 		if err != nil {
@@ -6939,6 +7273,22 @@ func (a *StreamingReceiver) UnmarshalJSON(b []byte) error {
 	err := json.Unmarshal(b, &object)
 	if err != nil {
 		return err
+	}
+
+	if raw, found := object["avgEventRate"]; found {
+		err = json.Unmarshal(raw, &a.AvgEventRate)
+		if err != nil {
+			return fmt.Errorf("error reading 'avgEventRate': %w", err)
+		}
+		delete(object, "avgEventRate")
+	}
+
+	if raw, found := object["eventRates"]; found {
+		err = json.Unmarshal(raw, &a.EventRates)
+		if err != nil {
+			return fmt.Errorf("error reading 'eventRates': %w", err)
+		}
+		delete(object, "eventRates")
 	}
 
 	if raw, found := object["executorHost"]; found {
@@ -7023,6 +7373,20 @@ func (a *StreamingReceiver) UnmarshalJSON(b []byte) error {
 func (a StreamingReceiver) MarshalJSON() ([]byte, error) {
 	var err error
 	object := make(map[string]json.RawMessage)
+
+	if a.AvgEventRate != nil {
+		object["avgEventRate"], err = json.Marshal(a.AvgEventRate)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'avgEventRate': %w", err)
+		}
+	}
+
+	if a.EventRates != nil {
+		object["eventRates"], err = json.Marshal(a.EventRates)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'eventRates': %w", err)
+		}
+	}
 
 	if a.ExecutorHost != nil {
 		object["executorHost"], err = json.Marshal(a.ExecutorHost)
@@ -7401,6 +7765,14 @@ func (a *Task) UnmarshalJSON(b []byte) error {
 		delete(object, "duration")
 	}
 
+	if raw, found := object["errorMessage"]; found {
+		err = json.Unmarshal(raw, &a.ErrorMessage)
+		if err != nil {
+			return fmt.Errorf("error reading 'errorMessage': %w", err)
+		}
+		delete(object, "errorMessage")
+	}
+
 	if raw, found := object["executorId"]; found {
 		err = json.Unmarshal(raw, &a.ExecutorId)
 		if err != nil {
@@ -7455,6 +7827,14 @@ func (a *Task) UnmarshalJSON(b []byte) error {
 			return fmt.Errorf("error reading 'partitionId': %w", err)
 		}
 		delete(object, "partitionId")
+	}
+
+	if raw, found := object["resultFetchStart"]; found {
+		err = json.Unmarshal(raw, &a.ResultFetchStart)
+		if err != nil {
+			return fmt.Errorf("error reading 'resultFetchStart': %w", err)
+		}
+		delete(object, "resultFetchStart")
 	}
 
 	if raw, found := object["schedulerDelay"]; found {
@@ -7545,6 +7925,13 @@ func (a Task) MarshalJSON() ([]byte, error) {
 		}
 	}
 
+	if a.ErrorMessage != nil {
+		object["errorMessage"], err = json.Marshal(a.ErrorMessage)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'errorMessage': %w", err)
+		}
+	}
+
 	if a.ExecutorId != nil {
 		object["executorId"], err = json.Marshal(a.ExecutorId)
 		if err != nil {
@@ -7591,6 +7978,13 @@ func (a Task) MarshalJSON() ([]byte, error) {
 		object["partitionId"], err = json.Marshal(a.PartitionId)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'partitionId': %w", err)
+		}
+	}
+
+	if a.ResultFetchStart != nil {
+		object["resultFetchStart"], err = json.Marshal(a.ResultFetchStart)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'resultFetchStart': %w", err)
 		}
 	}
 

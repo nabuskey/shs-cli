@@ -27,3 +27,13 @@ tasks:
     generates:
       - '{{.CLIENT_DIR}}/types.gen.go'
       - '{{.CLIENT_DIR}}/client.gen.go'
+
+  test:
+    desc: Run unit tests
+    cmds:
+      - go test ./... -count=1
+
+  build:
+    desc: Build the shs binary
+    cmds:
+      - go build -o {{.BIN_DIR}}/shs .

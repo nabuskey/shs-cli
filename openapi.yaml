@@ -645,6 +645,14 @@ components:
           type: string
         name:
           type: string
+        coresGranted:
+          type: integer
+        maxCores:
+          type: integer
+        coresPerExecutor:
+          type: integer
+        memoryPerExecutorMB:
+          type: integer
         attempts:
           type: array
           items:
@@ -653,6 +661,8 @@ components:
     ApplicationAttempt:
       type: object
       properties:
+        attemptId:
+          type: string
         startTime:
           type: string
         endTime:
@@ -768,6 +778,8 @@ components:
           type: string
         completionTime:
           type: string
+        failureReason:
+          type: string
         executorDeserializeTime:
           type: integer
           format: int64
@@ -875,6 +887,8 @@ components:
           format: int64
         name:
           type: string
+        description:
+          type: string
         details:
           type: string
         schedulingPool:
@@ -897,6 +911,8 @@ components:
           description: Map of executor ID to executor stage summary.
           additionalProperties:
             $ref: '#/components/schemas/ExecutorStageSummary'
+        speculationSummary:
+          $ref: '#/components/schemas/SpeculationStageSummary'
         killedTasksSummary:
           type: object
           additionalProperties:
@@ -922,8 +938,24 @@ components:
           format: int64
         name:
           type: string
+        update:
+          type: string
         value:
           type: string
+      additionalProperties: true
+    SpeculationStageSummary:
+      type: object
+      properties:
+        numTasks:
+          type: integer
+        numActiveTasks:
+          type: integer
+        numCompletedTasks:
+          type: integer
+        numFailedTasks:
+          type: integer
+        numKilledTasks:
+          type: integer
       additionalProperties: true
     Task:
       type: object
@@ -938,6 +970,8 @@ components:
         partitionId:
           type: integer
         launchTime:
+          type: string
+        resultFetchStart:
           type: string
         duration:
           type: integer
@@ -956,6 +990,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AccumulatorUpdate'
+        errorMessage:
+          type: string
         taskMetrics:
           $ref: '#/components/schemas/TaskMetrics'
         executorLogs:
@@ -1695,6 +1731,9 @@ components:
           type: integer
         nodeName:
           type: string
+        wholeStageCodegenId:
+          type: integer
+          format: int64
         metrics:
           type: array
           items:
@@ -1847,6 +1886,14 @@ components:
           type: string
         lastError:
           type: string
+        avgEventRate:
+          type: number
+        eventRates:
+          type: array
+          items:
+            type: array
+            items:
+              type: number
       additionalProperties: true
     StreamingBatch:
       type: object
@@ -1880,6 +1927,8 @@ components:
           type: integer
         numTotalOutputOps:
           type: integer
+        firstFailureReason:
+          type: string
       additionalProperties: true
     StreamingOutputOperation:
       type: object
@@ -1899,4 +1948,8 @@ components:
           format: int64
         failureReason:
           type: string
+        jobIds:
+          type: array
+          items:
+            type: integer
       additionalProperties: true
