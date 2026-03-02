@@ -2,12 +2,21 @@ package util
 
 import (
 	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/kubeflow/mcp-apache-spark-history-server/client"
 	"github.com/kubeflow/mcp-apache-spark-history-server/config"
 )
 
-func NewSHSClient(configPath, serverName string) (*client.ClientWithResponses, error) {
+const DefaultTimeout = 10 * time.Second
+
+func NewSHSClient(configPath, serverName string, opts ...Option) (*client.ClientWithResponses, error) {
+	o := options{timeout: DefaultTimeout}
+	for _, fn := range opts {
+		fn(&o)
+	}
+
 	cfg, err := config.Load(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("loading config: %w", err)
@@ -33,5 +42,16 @@ func NewSHSClient(configPath, serverName string) (*client.ClientWithResponses, e
 		}
 	}
 
-	return client.NewClientWithResponses(srv.URL + "/api/v1")
+	httpClient := &http.Client{Timeout: o.timeout}
+	return client.NewClientWithResponses(srv.URL+"/api/v1", client.WithHTTPClient(httpClient))
+}
+
+type options struct {
+	timeout time.Duration
+}
+
+type Option func(*options)
+
+func WithTimeout(d time.Duration) Option {
+	return func(o *options) { o.timeout = d }
 }

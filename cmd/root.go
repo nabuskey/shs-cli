@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/spf13/cobra"
 )
 
@@ -9,6 +11,7 @@ var (
 	serverName string
 	configPath string
 	outputFmt  string
+	timeout    time.Duration
 )
 
 var rootCmd = &cobra.Command{
@@ -21,6 +24,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&serverName, "server", "s", "", "Server name from config")
 	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "config.yaml", "Path to config file")
 	rootCmd.PersistentFlags().StringVarP(&outputFmt, "output", "o", "txt", "Output format (txt|json|yaml)")
+	rootCmd.PersistentFlags().DurationVar(&timeout, "timeout", 10*time.Second, "HTTP request timeout")
 
 	rootCmd.AddCommand(
 		newVersionCmd(),

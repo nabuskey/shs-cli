@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"io"
+	"slices"
 	"text/tabwriter"
 
 	"github.com/kubeflow/mcp-apache-spark-history-server/client"
@@ -14,6 +16,8 @@ import (
 func newAppsCmd() *cobra.Command {
 	var status string
 	var limit int
+	var sortBy string
+	var desc bool
 
 	cmd := &cobra.Command{
 		Use:   "apps",
@@ -24,20 +28,74 @@ func newAppsCmd() *cobra.Command {
 				s := client.ListApplicationsParamsStatus(status)
 				params.Status = &s
 			}
-			if limit > 0 {
+			if limit != 0 {
 				params.Limit = &limit
 			}
-			return listApps(cmd, params)
+			return listApps(cmd, params, limit, sortBy, desc)
 		},
 	}
 
 	cmd.Flags().StringVar(&status, "status", "", "Filter by status (running|completed)")
-	cmd.Flags().IntVar(&limit, "limit", 0, "Max number of applications to return")
+	cmd.Flags().IntVar(&limit, "limit", 20, "Max number of applications to return (0 for all)")
+	cmd.Flags().StringVar(&sortBy, "sort", "", "Sort by field (name|id|date|duration)")
+	cmd.Flags().BoolVar(&desc, "desc", false, "Sort descending")
 	return cmd
 }
 
-func listApps(cmd *cobra.Command, params *client.ListApplicationsParams) error {
-	c, err := util.NewSHSClient(configPath, serverName)
+func sortApps(apps []client.Application, field string, desc bool) {
+	slices.SortFunc(apps, func(a, b client.Application) int {
+		var c int
+		switch field {
+		case "name":
+			c = cmp.Compare(deref(a.Name), deref(b.Name))
+		case "id":
+			c = cmp.Compare(deref(a.Id), deref(b.Id))
+		case "date":
+			c = cmp.Compare(latestAttemptEpoch(a), latestAttemptEpoch(b))
+		case "duration":
+			c = cmp.Compare(latestAttemptDuration(a), latestAttemptDuration(b))
+		}
+		if desc {
+			return -c
+		}
+		return c
+	})
+}
+
+func deref[T any](p *T) T {
+	if p != nil {
+		return *p
+	}
+	var zero T
+	return zero
+}
+
+func latestAttemptEpoch(a client.Application) int64 {
+	if a.Attempts == nil {
+		return 0
+	}
+	for _, att := range *a.Attempts {
+		if att.StartTimeEpoch != nil {
+			return *att.StartTimeEpoch
+		}
+	}
+	return 0
+}
+
+func latestAttemptDuration(a client.Application) int64 {
+	if a.Attempts == nil {
+		return 0
+	}
+	for _, att := range *a.Attempts {
+		if att.Duration != nil {
+			return *att.Duration
+		}
+	}
+	return 0
+}
+
+func listApps(cmd *cobra.Command, params *client.ListApplicationsParams, limit int, sortBy string, desc bool) error {
+	c, err := util.NewSHSClient(configPath, serverName, util.WithTimeout(timeout))
 	if err != nil {
 		return err
 	}
@@ -51,6 +109,11 @@ func listApps(cmd *cobra.Command, params *client.ListApplicationsParams) error {
 	}
 
 	apps := *resp.JSON200
+
+	if sortBy != "" {
+		sortApps(apps, sortBy, desc)
+	}
+
 	return printOutput(cmd.OutOrStdout(), apps, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 		fmt.Fprintln(tw, "ID\tNAME\tATTEMPTS")
@@ -68,6 +131,12 @@ func listApps(cmd *cobra.Command, params *client.ListApplicationsParams) error {
 			}
 			fmt.Fprintf(tw, "%s\t%s\t%d\n", id, name, attempts)
 		}
-		return tw.Flush()
+		if err := tw.Flush(); err != nil {
+			return err
+		}
+		if limit > 0 && len(apps) >= limit {
+			fmt.Fprintf(w, "\nShowing %d applications. Use --limit 0 to list all.\n", limit)
+		}
+		return nil
 	})
 }
