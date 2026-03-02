@@ -11,7 +11,7 @@ import (
 
 const DefaultTimeout = 10 * time.Second
 
-func NewSHSClient(configPath, serverName string, opts ...Option) (*client.ClientWithResponses, error) {
+func NewSHSClient(configPath, serverName string, opts ...Option) (client.ClientWithResponsesInterface, error) {
 	o := options{timeout: DefaultTimeout}
 	for _, fn := range opts {
 		fn(&o)

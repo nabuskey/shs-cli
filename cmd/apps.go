@@ -31,7 +31,11 @@ func newAppsCmd() *cobra.Command {
 			if limit != 0 {
 				params.Limit = &limit
 			}
-			return listApps(cmd, params, limit, sortBy, desc)
+			c, err := newClient()
+			if err != nil {
+				return err
+			}
+			return listApps(cmd, c, params, limit, sortBy, desc)
 		},
 	}
 
@@ -86,12 +90,7 @@ func latestAttemptDuration(a client.Application) int64 {
 	return 0
 }
 
-func listApps(cmd *cobra.Command, params *client.ListApplicationsParams, limit int, sortBy string, desc bool) error {
-	c, err := util.NewSHSClient(configPath, serverName, util.WithTimeout(timeout))
-	if err != nil {
-		return err
-	}
-
+func listApps(cmd *cobra.Command, c client.ClientWithResponsesInterface, params *client.ListApplicationsParams, limit int, sortBy string, desc bool) error {
 	resp, err := c.ListApplicationsWithResponse(context.Background(), params)
 	if err != nil {
 		return err

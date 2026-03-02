@@ -30,7 +30,7 @@ type versionInfo struct {
 func showVersion(cmd *cobra.Command) error {
 	info := versionInfo{CLI: cliVersion}
 
-	c, err := util.NewSHSClient(configPath, serverName, util.WithTimeout(5*time.Second))
+	c, err := newClient(util.WithTimeout(5 * time.Second))
 	if err == nil {
 		resp, err := c.GetVersionWithResponse(context.Background())
 		if err == nil && resp.JSON200 != nil && resp.JSON200.Spark != nil {

@@ -27,19 +27,23 @@ func newJobsCmd() *cobra.Command {
 		Short: "List or get jobs for an application",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			c, err := newClient()
+			if err != nil {
+				return err
+			}
 			if len(args) == 1 {
 				jobId, err := strconv.Atoi(args[0])
 				if err != nil {
 					return fmt.Errorf("invalid job ID: %s", args[0])
 				}
-				return getJob(cmd, jobId)
+				return getJob(cmd, c, jobId)
 			}
 			params := &client.ListJobsParams{}
 			if status != "" {
 				s := client.ListJobsParamsStatus(status)
 				params.Status = &s
 			}
-			return listJobs(cmd, params, limit, group, sortBy)
+			return listJobs(cmd, c, params, limit, group, sortBy)
 		},
 	}
 
@@ -61,8 +65,8 @@ func jobDuration(j client.Job) time.Duration {
 	if j.SubmissionTime == nil || j.CompletionTime == nil {
 		return 0
 	}
-	start, err1 := time.Parse("2006-01-02T15:04:05.000GMT", *j.SubmissionTime)
-	end, err2 := time.Parse("2006-01-02T15:04:05.000GMT", *j.CompletionTime)
+	start, err1 := util.ParseSparkTime(*j.SubmissionTime)
+	end, err2 := util.ParseSparkTime(*j.CompletionTime)
 	if err1 != nil || err2 != nil {
 		return 0
 	}
@@ -95,12 +99,7 @@ func sortJobs(jobs []client.Job, sortBy string) {
 	})
 }
 
-func listJobs(cmd *cobra.Command, params *client.ListJobsParams, limit int, group string, sortBy string) error {
-	c, err := util.NewSHSClient(configPath, serverName, util.WithTimeout(timeout))
-	if err != nil {
-		return err
-	}
-
+func listJobs(cmd *cobra.Command, c client.ClientWithResponsesInterface, params *client.ListJobsParams, limit int, group string, sortBy string) error {
 	resp, err := c.ListJobsWithResponse(context.Background(), appID, params)
 	if err != nil {
 		return err
@@ -163,12 +162,7 @@ func listJobs(cmd *cobra.Command, params *client.ListJobsParams, limit int, grou
 	})
 }
 
-func getJob(cmd *cobra.Command, jobId int) error {
-	c, err := util.NewSHSClient(configPath, serverName, util.WithTimeout(timeout))
-	if err != nil {
-		return err
-	}
-
+func getJob(cmd *cobra.Command, c client.ClientWithResponsesInterface, jobId int) error {
 	resp, err := c.GetJobWithResponse(context.Background(), appID, jobId)
 	if err != nil {
 		return err

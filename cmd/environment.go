@@ -6,6 +6,7 @@ import (
 	"io"
 	"text/tabwriter"
 
+	"github.com/kubeflow/mcp-apache-spark-history-server/client"
 	"github.com/kubeflow/mcp-apache-spark-history-server/util"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +19,11 @@ func newEnvironmentCmd() *cobra.Command {
 		Short:   "Get environment info for an application",
 		Aliases: []string{"env"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return getEnvironment(cmd, section)
+			c, err := newClient()
+			if err != nil {
+				return err
+			}
+			return getEnvironment(cmd, c, section)
 		},
 	}
 
@@ -26,12 +31,7 @@ func newEnvironmentCmd() *cobra.Command {
 	return cmd
 }
 
-func getEnvironment(cmd *cobra.Command, section string) error {
-	c, err := util.NewSHSClient(configPath, serverName, util.WithTimeout(timeout))
-	if err != nil {
-		return err
-	}
-
+func getEnvironment(cmd *cobra.Command, c client.ClientWithResponsesInterface, section string) error {
 	resp, err := c.GetEnvironmentWithResponse(context.Background(), appID)
 	if err != nil {
 		return err

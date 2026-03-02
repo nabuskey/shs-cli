@@ -3,6 +3,8 @@ package cmd
 import (
 	"time"
 
+	"github.com/kubeflow/mcp-apache-spark-history-server/client"
+	"github.com/kubeflow/mcp-apache-spark-history-server/util"
 	"github.com/spf13/cobra"
 )
 
@@ -41,4 +43,11 @@ func init() {
 
 func Execute() error {
 	return rootCmd.Execute()
+}
+
+func newClient(opts ...util.Option) (client.ClientWithResponsesInterface, error) {
+	if len(opts) == 0 {
+		opts = []util.Option{util.WithTimeout(timeout)}
+	}
+	return util.NewSHSClient(configPath, serverName, opts...)
 }
