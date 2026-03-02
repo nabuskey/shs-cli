@@ -47,9 +47,9 @@ func getEnvironment(cmd *cobra.Command, section string) error {
 		if section == "" || section == "runtime" {
 			if env.Runtime != nil {
 				fmt.Fprintln(tw, "=== Runtime ===")
-				fmt.Fprintf(tw, "Java Home\t%s\n", deref(env.Runtime.JavaHome))
-				fmt.Fprintf(tw, "Java Version\t%s\n", deref(env.Runtime.JavaVersion))
-				fmt.Fprintf(tw, "Scala Version\t%s\n", deref(env.Runtime.ScalaVersion))
+				fmt.Fprintf(tw, "Java Home\t%s\n", util.Deref(env.Runtime.JavaHome))
+				fmt.Fprintf(tw, "Java Version\t%s\n", util.Deref(env.Runtime.JavaVersion))
+				fmt.Fprintf(tw, "Scala Version\t%s\n", util.Deref(env.Runtime.ScalaVersion))
 				fmt.Fprintln(tw)
 			}
 		}

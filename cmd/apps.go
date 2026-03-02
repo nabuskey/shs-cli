@@ -47,9 +47,9 @@ func sortApps(apps []client.Application, field string, desc bool) {
 		var c int
 		switch field {
 		case "name":
-			c = cmp.Compare(deref(a.Name), deref(b.Name))
+			c = cmp.Compare(util.Deref(a.Name), util.Deref(b.Name))
 		case "id":
-			c = cmp.Compare(deref(a.Id), deref(b.Id))
+			c = cmp.Compare(util.Deref(a.Id), util.Deref(b.Id))
 		case "date":
 			c = cmp.Compare(latestAttemptEpoch(a), latestAttemptEpoch(b))
 		case "duration":
@@ -60,14 +60,6 @@ func sortApps(apps []client.Application, field string, desc bool) {
 		}
 		return c
 	})
-}
-
-func deref[T any](p *T) T {
-	if p != nil {
-		return *p
-	}
-	var zero T
-	return zero
 }
 
 func latestAttemptEpoch(a client.Application) int64 {

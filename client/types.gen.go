@@ -400,6 +400,8 @@ type InputMetrics struct {
 // Job defines model for Job.
 type Job struct {
 	CompletionTime       *string                `json:"completionTime,omitempty"`
+	Description          *string                `json:"description,omitempty"`
+	JobGroup             *string                `json:"jobGroup,omitempty"`
 	JobId                *int                   `json:"jobId,omitempty"`
 	JobTags              *[]string              `json:"jobTags,omitempty"`
 	KilledTasksSummary   *map[string]int        `json:"killedTasksSummary,omitempty"`
@@ -2917,6 +2919,22 @@ func (a *Job) UnmarshalJSON(b []byte) error {
 		delete(object, "completionTime")
 	}
 
+	if raw, found := object["description"]; found {
+		err = json.Unmarshal(raw, &a.Description)
+		if err != nil {
+			return fmt.Errorf("error reading 'description': %w", err)
+		}
+		delete(object, "description")
+	}
+
+	if raw, found := object["jobGroup"]; found {
+		err = json.Unmarshal(raw, &a.JobGroup)
+		if err != nil {
+			return fmt.Errorf("error reading 'jobGroup': %w", err)
+		}
+		delete(object, "jobGroup")
+	}
+
 	if raw, found := object["jobId"]; found {
 		err = json.Unmarshal(raw, &a.JobId)
 		if err != nil {
@@ -3084,6 +3102,20 @@ func (a Job) MarshalJSON() ([]byte, error) {
 		object["completionTime"], err = json.Marshal(a.CompletionTime)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'completionTime': %w", err)
+		}
+	}
+
+	if a.Description != nil {
+		object["description"], err = json.Marshal(a.Description)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'description': %w", err)
+		}
+	}
+
+	if a.JobGroup != nil {
+		object["jobGroup"], err = json.Marshal(a.JobGroup)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'jobGroup': %w", err)
 		}
 	}
 

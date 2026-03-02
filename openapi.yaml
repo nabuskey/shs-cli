@@ -685,6 +685,8 @@ components:
           type: integer
         name:
           type: string
+        description:
+          type: string
         submissionTime:
           type: string
         completionTime:
@@ -693,6 +695,8 @@ components:
           type: array
           items:
             type: integer
+        jobGroup:
+          type: string
         jobTags:
           type: array
           items:
