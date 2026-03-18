@@ -17,8 +17,9 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "shs",
-	Short: "CLI for Apache Spark History Server",
+	Use:           "shs",
+	Short:         "CLI for Apache Spark History Server",
+	SilenceUsage:  true,
 }
 
 func init() {
