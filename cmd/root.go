@@ -38,6 +38,7 @@ func init() {
 		newEnvironmentCmd(),
 		newStorageCmd(),
 		newLogsCmd(),
+		newPrimeCmd(),
 	)
 }
 
