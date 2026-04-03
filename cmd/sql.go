@@ -39,6 +39,9 @@ func newSQLCmd() *cobra.Command {
 				}
 				return getSQLExecution(cmd, c, id, showInitialPlan, showJobs)
 			}
+			if showJobs || showInitialPlan {
+				return fmt.Errorf("--jobs and --initial-plan require an execution ID")
+			}
 			return listSQLExecutions(cmd, c, status, limit, sortBy)
 		},
 	}
@@ -269,6 +272,27 @@ func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, 
 	}
 
 	e := resp.JSON200
+
+	var jobs []client.Job
+	var stages *stageAgg
+	if showJobs {
+		ids := collectJobIds(e)
+		if len(ids) > 0 {
+			jobs, err = fetchSQLJobs(c, ids)
+			if err != nil {
+				return err
+			}
+			stagesResp, err := c.ListStagesWithResponse(context.Background(), appID, &client.ListStagesParams{})
+			if err != nil {
+				return err
+			}
+			if stagesResp.JSON200 != nil {
+				agg := aggStages(*stagesResp.JSON200, stageIDsFromJobs(jobs))
+				stages = &agg
+			}
+		}
+	}
+
 	return printOutput(cmd.OutOrStdout(), e, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 		fmt.Fprintf(tw, "Execution ID:\t%d\n", util.Deref(e.Id))
@@ -292,16 +316,19 @@ func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, 
 			fmt.Fprintf(w, "\nMetrics:\n")
 			fmt.Fprint(w, metrics)
 		}
-		if showJobs {
-			ids := collectJobIds(e)
-			if len(ids) > 0 {
-				jobs, err := fetchSQLJobs(c, ids)
-				if err != nil {
-					return err
-				}
-				fmt.Fprintf(w, "\nJobs (%d):\n", len(jobs))
-				formatSQLJobs(w, jobs)
-			}
+		if len(jobs) > 0 {
+			fmt.Fprintf(w, "\nJobs (%d):\n", len(jobs))
+			formatSQLJobs(w, jobs)
+		}
+		if stages != nil {
+			fmt.Fprintf(w, "\nAggregate Stage Metrics:\n")
+			fmt.Fprintf(w, "  Stages:        %d\n", stages.Count)
+			fmt.Fprintf(w, "  Tasks:         %d\n", stages.Tasks)
+			fmt.Fprintf(w, "  Input:         %s\n", util.FormatBytes(stages.InputBytes))
+			fmt.Fprintf(w, "  Shuffle Read:  %s\n", util.FormatBytes(stages.ShuffleRead))
+			fmt.Fprintf(w, "  Shuffle Write: %s\n", util.FormatBytes(stages.ShuffleWrite))
+			fmt.Fprintf(w, "  Spill (Disk):  %s\n", util.FormatBytes(stages.SpillDisk))
+			fmt.Fprintf(w, "  GC Time:       %s\n", fmtMs(stages.GCTime))
 		}
 		return tw.Flush()
 	})
