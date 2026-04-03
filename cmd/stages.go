@@ -7,6 +7,7 @@ import (
 	"io"
 	"slices"
 	"strconv"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -19,6 +20,7 @@ func newStagesCmd() *cobra.Command {
 	var status string
 	var limit int
 	var sortBy string
+	var errors bool
 
 	cmd := &cobra.Command{
 		Use:   "stages [stageId]",
@@ -34,6 +36,9 @@ func newStagesCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("invalid stage ID: %s", args[0])
 				}
+				if errors {
+					return getStageErrors(cmd, c, stageId)
+				}
 				return getStage(cmd, c, stageId)
 			}
 			params := &client.ListStagesParams{}
@@ -48,6 +53,7 @@ func newStagesCmd() *cobra.Command {
 	cmd.Flags().StringVar(&status, "status", "", "Filter by status (active|complete|pending|failed)")
 	cmd.Flags().IntVar(&limit, "limit", 20, "Max number of stages to return (0 for all)")
 	cmd.Flags().StringVar(&sortBy, "sort", "", "Sort by field (failed-tasks|duration|id)")
+	cmd.Flags().BoolVar(&errors, "errors", false, "Show only failed tasks with error messages (requires stageId)")
 	return cmd
 }
 
@@ -133,9 +139,9 @@ func listStages(cmd *cobra.Command, c client.ClientWithResponsesInterface, param
 				util.Deref(s.NumTasks),
 				util.Deref(s.NumFailedTasks),
 				stageDuration(s).Truncate(time.Millisecond),
-				util.FormatBytes(util.Deref(s.InputBytes)),
-				util.FormatBytes(util.Deref(s.ShuffleReadBytes)),
-				util.FormatBytes(util.Deref(s.ShuffleWriteBytes)),
+				util.DerefBytes(s.InputBytes),
+				util.DerefBytes(s.ShuffleReadBytes),
+				util.DerefBytes(s.ShuffleWriteBytes),
 			)
 		}
 		if err := tw.Flush(); err != nil {
@@ -176,17 +182,66 @@ func getStage(cmd *cobra.Command, c client.ClientWithResponsesInterface, stageId
 		fmt.Fprintf(tw, "Tasks:\t%d (failed: %d, killed: %d)\n",
 			util.Deref(s.NumTasks), util.Deref(s.NumFailedTasks), util.Deref(s.NumKilledTasks))
 		fmt.Fprintf(tw, "Input:\t%s (%d records)\n",
-			util.FormatBytes(util.Deref(s.InputBytes)), util.Deref(s.InputRecords))
+			util.DerefBytes(s.InputBytes), util.Deref(s.InputRecords))
 		fmt.Fprintf(tw, "Output:\t%s (%d records)\n",
-			util.FormatBytes(util.Deref(s.OutputBytes)), util.Deref(s.OutputRecords))
+			util.DerefBytes(s.OutputBytes), util.Deref(s.OutputRecords))
 		fmt.Fprintf(tw, "Shuffle Read:\t%s (%d records)\n",
-			util.FormatBytes(util.Deref(s.ShuffleReadBytes)), util.Deref(s.ShuffleReadRecords))
+			util.DerefBytes(s.ShuffleReadBytes), util.Deref(s.ShuffleReadRecords))
 		fmt.Fprintf(tw, "Shuffle Write:\t%s (%d records)\n",
-			util.FormatBytes(util.Deref(s.ShuffleWriteBytes)), util.Deref(s.ShuffleWriteRecords))
-		fmt.Fprintf(tw, "Memory Spilled:\t%s\n", util.FormatBytes(util.Deref(s.MemoryBytesSpilled)))
-		fmt.Fprintf(tw, "Disk Spilled:\t%s\n", util.FormatBytes(util.Deref(s.DiskBytesSpilled)))
+			util.DerefBytes(s.ShuffleWriteBytes), util.Deref(s.ShuffleWriteRecords))
+		fmt.Fprintf(tw, "Memory Spilled:\t%s\n", util.DerefBytes(s.MemoryBytesSpilled))
+		fmt.Fprintf(tw, "Disk Spilled:\t%s\n", util.DerefBytes(s.DiskBytesSpilled))
 		fmt.Fprintf(tw, "GC Time:\t%dms\n", util.Deref(s.JvmGcTime))
 		fmt.Fprintf(tw, "Pool:\t%s\n", util.Deref(s.SchedulingPool))
+		return tw.Flush()
+	})
+}
+
+func getStageErrors(cmd *cobra.Command, c client.ClientWithResponsesInterface, stageId int) error {
+	// get latest attempt ID
+	params := &client.ListStageAttemptsParams{}
+	resp, err := c.ListStageAttemptsWithResponse(context.Background(), appID, stageId, params)
+	if err != nil {
+		return err
+	}
+	if resp.JSON200 == nil {
+		return fmt.Errorf("unexpected status: %s", resp.HTTPResponse.Status)
+	}
+	attempts := *resp.JSON200
+	if len(attempts) == 0 {
+		return fmt.Errorf("no attempts found for stage %d", stageId)
+	}
+	attemptId := util.Deref(attempts[len(attempts)-1].AttemptId)
+
+	// fetch failed tasks
+	status := client.ListTasksParamsStatus("failed")
+	taskParams := &client.ListTasksParams{Status: &status}
+	taskResp, err := c.ListTasksWithResponse(context.Background(), appID, stageId, attemptId, taskParams)
+	if err != nil {
+		return err
+	}
+	if taskResp.JSON200 == nil {
+		return fmt.Errorf("unexpected status: %s", taskResp.HTTPResponse.Status)
+	}
+
+	tasks := *taskResp.JSON200
+	return printOutput(cmd.OutOrStdout(), tasks, func(w io.Writer) error {
+		if len(tasks) == 0 {
+			fmt.Fprintln(w, "No failed tasks.")
+			return nil
+		}
+		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
+		fmt.Fprintln(tw, "TASK\tATTEMPT\tEXECUTOR\tSTATUS\tERROR")
+		for _, t := range tasks {
+			errMsg := strings.Join(strings.Fields(util.Deref(t.ErrorMessage)), " ")
+			fmt.Fprintf(tw, "%d\t%d\t%s\t%s\t%s\n",
+				util.Deref(t.TaskId),
+				util.Deref(t.Attempt),
+				util.Deref(t.ExecutorId),
+				util.Deref(t.Status),
+				errMsg,
+			)
+		}
 		return tw.Flush()
 	})
 }

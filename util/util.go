@@ -37,3 +37,11 @@ func Deref[T any](p *T) T {
 }
 
 func Ptr[T any](v T) *T { return &v }
+
+// DerefBytes dereferences a pointer and formats the value as human-readable bytes.
+func DerefBytes(p *int64) string { return FormatBytes(Deref(p)) }
+
+// FormatMs dereferences a pointer to milliseconds and formats as a duration string.
+func FormatMs(p *int64) string {
+	return (time.Duration(Deref(p)) * time.Millisecond).Truncate(time.Millisecond).String()
+}

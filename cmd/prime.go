@@ -9,15 +9,18 @@ import (
 const primeText = `shs — Spark History Server CLI (for AI agents)
 
 COMMANDS
-  shs apps                     List applications
-  shs jobs -a APP_ID           List jobs for an application
-  shs jobs -a APP_ID JOB_ID    Get job detail
-  shs stages -a APP_ID         List stages for an application
-  shs stages -a APP_ID STAGE   Get stage detail with full metrics
-  shs env -a APP_ID            Show environment/config
-  shs executors -a APP_ID      List executors
-  shs sql -a APP_ID            List SQL executions
-  shs version                  CLI + server Spark version
+  shs apps                        List applications
+  shs jobs -a APP_ID              List jobs for an application
+  shs jobs -a APP_ID JOB_ID       Get job detail
+  shs stages -a APP_ID            List stages for an application
+  shs stages -a APP_ID STAGE      Get stage detail with full metrics
+  shs stages -a APP_ID STAGE --errors  Show failed tasks with errors
+  shs executors -a APP_ID         List active executors
+  shs executors -a APP_ID EXEC    Get executor detail
+  shs sql -a APP_ID               List SQL executions
+  shs sql -a APP_ID EXEC_ID       Get SQL execution detail with plan
+  shs env -a APP_ID               Show environment/config
+  shs version                     CLI + server Spark version
 
 GLOBAL FLAGS
   -a, --app-id STRING     Application ID (required for most commands)
@@ -26,20 +29,23 @@ GLOBAL FLAGS
   -c, --config PATH       Config file (default: config.yaml)
       --timeout DURATION  HTTP timeout (default: 10s)
 
-LIST FLAGS (apps, jobs, stages)
+LIST FLAGS (apps, jobs, stages, sql)
   --limit N       Max results, default 20. Use --limit 0 for all.
   --status VALUE  Filter by status (values vary per command).
   --sort FIELD    Sort field (values vary per command).
 
 COMMAND DETAILS
-  apps   --status running|completed  --sort name|id|date|duration  --desc
-  jobs   --status running|succeeded|failed|unknown  --sort failed-tasks|duration|id  --group GROUP
-  stages --status active|complete|pending|failed  --sort failed-tasks|duration|id
+  apps       --status running|completed  --sort name|id|date|duration  --desc
+  jobs       --status running|succeeded|failed|unknown  --sort failed-tasks|duration|id  --group GROUP
+  stages     --status active|complete|pending|failed  --sort failed-tasks|duration|id  --errors
+  executors  --all (include dead)  --summary (peak memory/OOM view)  --sort failed-tasks|duration|gc|id
+  sql        --status completed|running|failed  --sort duration|id
 
 DEFAULT SORT
-  jobs:   failed first, then by duration descending
-  stages: failed → complete → active → pending → skipped, then duration desc
-  Skipped stages are hidden by default.
+  jobs:       failed first, then by duration descending
+  stages:     failed → complete → active → pending → skipped, then duration desc
+  executors:  active first, then by task time descending
+  sql:        failed first, then by duration descending
 
 OUTPUT
   -o txt    Human-readable tables (default).
@@ -55,13 +61,23 @@ COMMON WORKFLOWS
   Investigate failures:
     shs jobs -a APP_ID --status failed
     shs stages -a APP_ID --status failed
-    shs stages -a APP_ID STAGE_ID
+    shs stages -a APP_ID STAGE_ID --errors  # failed tasks + error messages
+    shs stages -a APP_ID STAGE_ID --errors -o json  # full task details
 
   Find slowest stages:
     shs stages -a APP_ID --sort duration --limit 10
 
   Check for data skew (look at shuffle and spill metrics):
     shs stages -a APP_ID STAGE_ID -o json
+
+  Find executor bottlenecks:
+    shs executors -a APP_ID --sort gc
+    shs executors -a APP_ID --summary   # peak memory, OOM status, dead first
+    shs executors -a APP_ID EXECUTOR_ID
+
+  Investigate slow SQL queries:
+    shs sql -a APP_ID --sort duration --limit 10
+    shs sql -a APP_ID EXEC_ID          # shows plan description
 
   Get Spark config for an app:
     shs env -a APP_ID --section spark
@@ -73,12 +89,18 @@ DATA MODEL
                Detail view shows: task counts, input/output bytes,
                shuffle read/write, spill, GC time, scheduling pool.
   Job Group    Optional grouping set by the application. Filter with --group.
+  Executor     A JVM process running tasks. Has cores, memory, shuffle/IO stats.
+               Detail view shows: memory usage, disk, task breakdown, RDD blocks.
+  SQL          A SQL/DataFrame execution. Links to jobs via job IDs.
+               Detail view includes the physical plan description.
 
 TIPS
   - Stage IDs appear in job output for cross-referencing.
   - Stage detail shows the latest attempt by default.
   - Duration is computed from submissionTime/completionTime.
   - Use -o json when you need to extract specific fields.
+  - SQL job IDs cross-reference with shs jobs output.
+  - Executor TASK_TIME is cumulative task execution time, not wall-clock uptime.
   - All timestamps are UTC.
 `
 
