@@ -233,7 +233,10 @@ func getStageErrors(cmd *cobra.Command, c client.ClientWithResponsesInterface, s
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 		fmt.Fprintln(tw, "TASK\tATTEMPT\tEXECUTOR\tSTATUS\tERROR")
 		for _, t := range tasks {
-			errMsg := strings.Join(strings.Fields(util.Deref(t.ErrorMessage)), " ")
+			errMsg := util.Deref(t.ErrorMessage)
+			if i := strings.IndexByte(errMsg, '\n'); i >= 0 {
+				errMsg = errMsg[:i]
+			}
 			fmt.Fprintf(tw, "%d\t%d\t%s\t%s\t%s\n",
 				util.Deref(t.TaskId),
 				util.Deref(t.Attempt),

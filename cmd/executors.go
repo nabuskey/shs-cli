@@ -199,6 +199,17 @@ func getExecutor(cmd *cobra.Command, c client.ClientWithResponsesInterface, id s
 	})
 }
 
+func formatSparkTimeShort(s *string) string {
+	if s == nil {
+		return ""
+	}
+	t, err := util.ParseSparkTime(*s)
+	if err != nil {
+		return *s
+	}
+	return t.Format("15:04:05")
+}
+
 func peakMetric(e client.Executor, fn func(*client.PeakMemoryMetrics) *int64) int64 {
 	if e.PeakMemoryMetrics == nil {
 		return 0
@@ -224,7 +235,7 @@ func listExecutorsSummary(cmd *cobra.Command, c client.ClientWithResponsesInterf
 
 	return printOutput(cmd.OutOrStdout(), execs, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-		fmt.Fprintln(tw, "ID\tACTIVE\tTASKS\tPEAK_RSS\tPEAK_HEAP\tPEAK_DIRECT\tPEAK_OFFHEAP\tGC_TIME\tREMOVE_REASON")
+		fmt.Fprintln(tw, "ID\tACTIVE\tADDED\tREMOVED\tTASKS\tPEAK_RSS\tPEAK_HEAP\tPEAK_DIRECT\tPEAK_OFFHEAP\tGC_TIME\tREMOVE_REASON")
 		for _, e := range execs {
 			reason := ""
 			if e.RemoveReason != nil {
@@ -233,9 +244,11 @@ func listExecutorsSummary(cmd *cobra.Command, c client.ClientWithResponsesInterf
 					reason = reason[:i]
 				}
 			}
-			fmt.Fprintf(tw, "%s\t%v\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			fmt.Fprintf(tw, "%s\t%v\t%s\t%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n",
 				util.Deref(e.Id),
 				util.Deref(e.IsActive),
+				formatSparkTimeShort(e.AddTime),
+				formatSparkTimeShort(e.RemoveTime),
 				util.Deref(e.TotalTasks),
 				util.FormatBytes(peakMetric(e, func(p *client.PeakMemoryMetrics) *int64 { return p.ProcessTreeJVMRSSMemory })),
 				util.FormatBytes(peakMetric(e, func(p *client.PeakMemoryMetrics) *int64 { return p.JVMHeapMemory })),
