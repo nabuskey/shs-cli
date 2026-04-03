@@ -40,6 +40,7 @@ func init() {
 		newStorageCmd(),
 		newLogsCmd(),
 		newPrimeCmd(),
+		newCompareCmd(),
 	)
 }
 

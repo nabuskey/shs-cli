@@ -22,6 +22,7 @@ COMMANDS
   shs sql -a APP_ID EXEC_ID --jobs          Include job summaries
   shs sql -a APP_ID EXEC_ID --initial-plan  Include initial AQE plans
   shs env -a APP_ID               Show environment/config
+  shs compare --app-a APP1 --app-b APP2 EXEC1 EXEC2  Compare SQL executions across apps
   shs version                     CLI + server Spark version
 
 GLOBAL FLAGS
@@ -81,6 +82,9 @@ COMMON WORKFLOWS
     shs sql -a APP_ID --sort duration --limit 10
     shs sql -a APP_ID EXEC_ID          # plan + node-level metrics (rows, shuffle, time)
     shs sql -a APP_ID EXEC_ID --jobs   # also shows job summaries (status, duration, failed tasks)
+
+  Compare same query across two runs:
+    shs compare --app-a APP1 --app-b APP2 EXEC1 EXEC2  # duration, jobs, stages, shuffle, spill diff
 
   Get Spark config for an app:
     shs env -a APP_ID --section spark
