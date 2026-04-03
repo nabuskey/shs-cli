@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -101,7 +102,8 @@ func formatJobIds(ids *[]int) string {
 
 func listSQLExecutions(cmd *cobra.Command, c client.ClientWithResponsesInterface, status string, limit int, sortBy string) error {
 	details := false
-	params := &client.ListSQLExecutionsParams{Details: &details}
+	allResults := math.MaxInt32
+	params := &client.ListSQLExecutionsParams{Details: &details, Length: &allResults}
 	resp, err := c.ListSQLExecutionsWithResponse(cmd.Context(), appID, params)
 	if err != nil {
 		return err
