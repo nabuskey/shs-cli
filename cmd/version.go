@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"time"
@@ -32,7 +31,7 @@ func showVersion(cmd *cobra.Command) error {
 
 	c, err := newClient(util.WithTimeout(5 * time.Second))
 	if err == nil {
-		resp, err := c.GetVersionWithResponse(context.Background())
+		resp, err := c.GetVersionWithResponse(cmd.Context())
 		if err == nil && resp.JSON200 != nil && resp.JSON200.Spark != nil {
 			info.Server = *resp.JSON200.Spark
 		}

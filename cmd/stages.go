@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"cmp"
-	"context"
 	"fmt"
 	"io"
 	"slices"
@@ -111,7 +110,7 @@ func stageDesc(s client.StageData) string {
 }
 
 func listStages(cmd *cobra.Command, c client.ClientWithResponsesInterface, params *client.ListStagesParams, limit int, sortBy string) error {
-	resp, err := c.ListStagesWithResponse(context.Background(), appID, params)
+	resp, err := c.ListStagesWithResponse(cmd.Context(), appID, params)
 	if err != nil {
 		return err
 	}
@@ -156,7 +155,7 @@ func listStages(cmd *cobra.Command, c client.ClientWithResponsesInterface, param
 
 func getStage(cmd *cobra.Command, c client.ClientWithResponsesInterface, stageId int) error {
 	params := &client.ListStageAttemptsParams{}
-	resp, err := c.ListStageAttemptsWithResponse(context.Background(), appID, stageId, params)
+	resp, err := c.ListStageAttemptsWithResponse(cmd.Context(), appID, stageId, params)
 	if err != nil {
 		return err
 	}
@@ -200,7 +199,7 @@ func getStage(cmd *cobra.Command, c client.ClientWithResponsesInterface, stageId
 func getStageErrors(cmd *cobra.Command, c client.ClientWithResponsesInterface, stageId int) error {
 	// get latest attempt ID
 	params := &client.ListStageAttemptsParams{}
-	resp, err := c.ListStageAttemptsWithResponse(context.Background(), appID, stageId, params)
+	resp, err := c.ListStageAttemptsWithResponse(cmd.Context(), appID, stageId, params)
 	if err != nil {
 		return err
 	}
@@ -216,7 +215,7 @@ func getStageErrors(cmd *cobra.Command, c client.ClientWithResponsesInterface, s
 	// fetch failed tasks
 	status := client.ListTasksParamsStatus("failed")
 	taskParams := &client.ListTasksParams{Status: &status}
-	taskResp, err := c.ListTasksWithResponse(context.Background(), appID, stageId, attemptId, taskParams)
+	taskResp, err := c.ListTasksWithResponse(cmd.Context(), appID, stageId, attemptId, taskParams)
 	if err != nil {
 		return err
 	}

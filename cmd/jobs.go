@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"cmp"
-	"context"
 	"fmt"
 	"io"
 	"slices"
@@ -100,7 +99,7 @@ func sortJobs(jobs []client.Job, sortBy string) {
 }
 
 func listJobs(cmd *cobra.Command, c client.ClientWithResponsesInterface, params *client.ListJobsParams, limit int, group string, sortBy string) error {
-	resp, err := c.ListJobsWithResponse(context.Background(), appID, params)
+	resp, err := c.ListJobsWithResponse(cmd.Context(), appID, params)
 	if err != nil {
 		return err
 	}
@@ -163,7 +162,7 @@ func listJobs(cmd *cobra.Command, c client.ClientWithResponsesInterface, params 
 }
 
 func getJob(cmd *cobra.Command, c client.ClientWithResponsesInterface, jobId int) error {
-	resp, err := c.GetJobWithResponse(context.Background(), appID, jobId)
+	resp, err := c.GetJobWithResponse(cmd.Context(), appID, jobId)
 	if err != nil {
 		return err
 	}

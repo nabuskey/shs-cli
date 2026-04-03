@@ -102,7 +102,7 @@ func formatJobIds(ids *[]int) string {
 func listSQLExecutions(cmd *cobra.Command, c client.ClientWithResponsesInterface, status string, limit int, sortBy string) error {
 	details := false
 	params := &client.ListSQLExecutionsParams{Details: &details}
-	resp, err := c.ListSQLExecutionsWithResponse(context.Background(), appID, params)
+	resp, err := c.ListSQLExecutionsWithResponse(cmd.Context(), appID, params)
 	if err != nil {
 		return err
 	}
@@ -215,8 +215,8 @@ func collectJobIds(e *client.SQLExecution) []int {
 }
 
 // fetchSQLJobs fetches all jobs and returns those matching the given IDs, sorted failed-first then by duration desc.
-func fetchSQLJobs(c client.ClientWithResponsesInterface, ids []int) ([]client.Job, error) {
-	resp, err := c.ListJobsWithResponse(context.Background(), appID, &client.ListJobsParams{})
+func fetchSQLJobs(ctx context.Context, c client.ClientWithResponsesInterface, ids []int) ([]client.Job, error) {
+	resp, err := c.ListJobsWithResponse(ctx, appID, &client.ListJobsParams{})
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +263,7 @@ func formatSQLJobs(w io.Writer, jobs []client.Job) {
 
 func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, id int, showInitialPlan bool, showJobs bool) error {
 	params := &client.GetSQLExecutionParams{}
-	resp, err := c.GetSQLExecutionWithResponse(context.Background(), appID, id, params)
+	resp, err := c.GetSQLExecutionWithResponse(cmd.Context(), appID, id, params)
 	if err != nil {
 		return err
 	}
@@ -278,11 +278,11 @@ func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, 
 	if showJobs {
 		ids := collectJobIds(e)
 		if len(ids) > 0 {
-			jobs, err = fetchSQLJobs(c, ids)
+			jobs, err = fetchSQLJobs(cmd.Context(), c, ids)
 			if err != nil {
 				return err
 			}
-			stagesResp, err := c.ListStagesWithResponse(context.Background(), appID, &client.ListStagesParams{})
+			stagesResp, err := c.ListStagesWithResponse(cmd.Context(), appID, &client.ListStagesParams{})
 			if err != nil {
 				return err
 			}

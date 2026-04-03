@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"cmp"
-	"context"
 	"fmt"
 	"io"
 	"slices"
@@ -91,7 +90,7 @@ func latestAttemptDuration(a client.Application) int64 {
 }
 
 func listApps(cmd *cobra.Command, c client.ClientWithResponsesInterface, params *client.ListApplicationsParams, limit int, sortBy string, desc bool) error {
-	resp, err := c.ListApplicationsWithResponse(context.Background(), params)
+	resp, err := c.ListApplicationsWithResponse(cmd.Context(), params)
 	if err != nil {
 		return err
 	}

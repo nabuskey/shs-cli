@@ -99,9 +99,9 @@ func sortExecutors(execs []client.Executor, sortBy string) {
 	})
 }
 
-func fetchExecutors(c client.ClientWithResponsesInterface, all bool) ([]client.Executor, error) {
+func fetchExecutors(ctx context.Context, c client.ClientWithResponsesInterface, all bool) ([]client.Executor, error) {
 	if all {
-		resp, err := c.ListAllExecutorsWithResponse(context.Background(), appID)
+		resp, err := c.ListAllExecutorsWithResponse(ctx, appID)
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +110,7 @@ func fetchExecutors(c client.ClientWithResponsesInterface, all bool) ([]client.E
 		}
 		return *resp.JSON200, nil
 	}
-	resp, err := c.ListActiveExecutorsWithResponse(context.Background(), appID)
+	resp, err := c.ListActiveExecutorsWithResponse(ctx, appID)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func fetchExecutors(c client.ClientWithResponsesInterface, all bool) ([]client.E
 }
 
 func listExecutors(cmd *cobra.Command, c client.ClientWithResponsesInterface, all bool, limit int, sortBy string) error {
-	execs, err := fetchExecutors(c, all)
+	execs, err := fetchExecutors(cmd.Context(), c, all)
 	if err != nil {
 		return err
 	}
@@ -162,7 +162,7 @@ func listExecutors(cmd *cobra.Command, c client.ClientWithResponsesInterface, al
 
 func getExecutor(cmd *cobra.Command, c client.ClientWithResponsesInterface, id string) error {
 	// API has no single-executor endpoint; fetch all and filter
-	execs, err := fetchExecutors(c, true)
+	execs, err := fetchExecutors(cmd.Context(), c, true)
 	if err != nil {
 		return err
 	}
@@ -218,7 +218,7 @@ func peakMetric(e client.Executor, fn func(*client.PeakMemoryMetrics) *int64) in
 }
 
 func listExecutorsSummary(cmd *cobra.Command, c client.ClientWithResponsesInterface, limit int, sortBy string) error {
-	execs, err := fetchExecutors(c, true)
+	execs, err := fetchExecutors(cmd.Context(), c, true)
 	if err != nil {
 		return err
 	}
@@ -269,7 +269,7 @@ func listExecutorsSummary(cmd *cobra.Command, c client.ClientWithResponsesInterf
 }
 
 func listExecutorsTimeline(cmd *cobra.Command, c client.ClientWithResponsesInterface) error {
-	execs, err := fetchExecutors(c, true)
+	execs, err := fetchExecutors(cmd.Context(), c, true)
 	if err != nil {
 		return err
 	}

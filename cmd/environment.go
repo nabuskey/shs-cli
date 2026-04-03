@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"text/tabwriter"
@@ -32,7 +31,7 @@ func newEnvironmentCmd() *cobra.Command {
 }
 
 func getEnvironment(cmd *cobra.Command, c client.ClientWithResponsesInterface, section string) error {
-	resp, err := c.GetEnvironmentWithResponse(context.Background(), appID)
+	resp, err := c.GetEnvironmentWithResponse(cmd.Context(), appID)
 	if err != nil {
 		return err
 	}

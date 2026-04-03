@@ -19,7 +19,7 @@ COMMANDS
   shs executors -a APP_ID EXEC    Get executor detail
   shs sql -a APP_ID               List SQL executions
   shs sql -a APP_ID EXEC_ID       Get SQL execution detail with plan and metrics
-  shs sql -a APP_ID EXEC_ID --jobs          Include job summaries
+  shs sql -a APP_ID EXEC_ID --jobs          Include job summaries + aggregate stage metrics
   shs sql -a APP_ID EXEC_ID --initial-plan  Include initial AQE plans
   shs env -a APP_ID               Show environment/config
   shs compare --app-a APP1 --app-b APP2 EXEC1 EXEC2  Compare SQL executions across apps
@@ -81,7 +81,7 @@ COMMON WORKFLOWS
   Investigate slow SQL queries:
     shs sql -a APP_ID --sort duration --limit 10
     shs sql -a APP_ID EXEC_ID          # plan + node-level metrics (rows, shuffle, time)
-    shs sql -a APP_ID EXEC_ID --jobs   # also shows job summaries (status, duration, failed tasks)
+    shs sql -a APP_ID EXEC_ID --jobs   # jobs + aggregate shuffle/input/spill/GC metrics
 
   Compare same query across two runs:
     shs compare --app-a APP1 --app-b APP2 EXEC1 EXEC2  # duration, jobs, stages, shuffle, spill diff
