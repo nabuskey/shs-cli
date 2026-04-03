@@ -20,6 +20,8 @@ func newSQLCmd() *cobra.Command {
 	var status string
 	var limit int
 	var sortBy string
+	var showInitialPlan bool
+	var showJobs bool
 
 	cmd := &cobra.Command{
 		Use:   "sql [executionId]",
@@ -35,7 +37,7 @@ func newSQLCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("invalid execution ID: %s", args[0])
 				}
-				return getSQLExecution(cmd, c, id)
+				return getSQLExecution(cmd, c, id, showInitialPlan, showJobs)
 			}
 			return listSQLExecutions(cmd, c, status, limit, sortBy)
 		},
@@ -44,6 +46,8 @@ func newSQLCmd() *cobra.Command {
 	cmd.Flags().StringVar(&status, "status", "", "Filter by status (completed|running|failed)")
 	cmd.Flags().IntVar(&limit, "limit", 20, "Max number of executions to return (0 for all)")
 	cmd.Flags().StringVar(&sortBy, "sort", "", "Sort by field (duration|id)")
+	cmd.Flags().BoolVar(&showInitialPlan, "initial-plan", false, "Include initial plans (stripped by default)")
+	cmd.Flags().BoolVar(&showJobs, "jobs", false, "Include job summaries for this SQL execution")
 	return cmd
 }
 
@@ -146,7 +150,115 @@ func listSQLExecutions(cmd *cobra.Command, c client.ClientWithResponsesInterface
 	})
 }
 
-func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, id int) error {
+// stripInitialPlans removes "== Initial Plan ==" sections from an AQE plan description,
+// keeping only the "== Final Plan ==" / "== Current Plan ==" sections.
+func stripInitialPlans(plan string) string {
+	var b strings.Builder
+	lines := strings.Split(plan, "\n")
+	i := 0
+	for i < len(lines) {
+		trimmed := strings.TrimSpace(lines[i])
+		if strings.HasPrefix(trimmed, "+- == Initial Plan ==") {
+			// Find the indentation depth of this marker.
+			markerIndent := len(lines[i]) - len(strings.TrimLeft(lines[i], " "))
+			i++
+			// Skip all subsequent lines indented deeper than the marker.
+			for i < len(lines) {
+				lineIndent := len(lines[i]) - len(strings.TrimLeft(lines[i], " "))
+				if lines[i] == "" || lineIndent > markerIndent {
+					i++
+				} else {
+					break
+				}
+			}
+			continue
+		}
+		b.WriteString(lines[i])
+		b.WriteByte('\n')
+		i++
+	}
+	return strings.TrimRight(b.String(), "\n")
+}
+
+// formatNodeMetrics formats the node-level metrics as a readable section.
+func formatNodeMetrics(nodes *[]client.SQLPlanNode) string {
+	if nodes == nil {
+		return ""
+	}
+	var b strings.Builder
+	for _, n := range *nodes {
+		if n.Metrics == nil || len(*n.Metrics) == 0 {
+			continue
+		}
+		b.WriteString(fmt.Sprintf("(%d) %s\n", util.Deref(n.NodeId), util.Deref(n.NodeName)))
+		for _, m := range *n.Metrics {
+			v := strings.Join(strings.Fields(util.Deref(m.Value)), " ")
+			b.WriteString(fmt.Sprintf("  %s: %s\n", util.Deref(m.Name), v))
+		}
+		b.WriteByte('\n')
+	}
+	return b.String()
+}
+
+// collectJobIds returns all job IDs (success + failed + running) from a SQL execution.
+func collectJobIds(e *client.SQLExecution) []int {
+	var ids []int
+	for _, p := range []*[]int{e.SuccessJobIds, e.FailedJobIds, e.RunningJobIds} {
+		if p != nil {
+			ids = append(ids, *p...)
+		}
+	}
+	return ids
+}
+
+// fetchSQLJobs fetches all jobs and returns those matching the given IDs, sorted failed-first then by duration desc.
+func fetchSQLJobs(c client.ClientWithResponsesInterface, ids []int) ([]client.Job, error) {
+	resp, err := c.ListJobsWithResponse(context.Background(), appID, &client.ListJobsParams{})
+	if err != nil {
+		return nil, err
+	}
+	if resp.JSON200 == nil {
+		return nil, fmt.Errorf("unexpected status: %s", resp.HTTPResponse.Status)
+	}
+	want := make(map[int]bool, len(ids))
+	for _, id := range ids {
+		want[id] = true
+	}
+	var matched []client.Job
+	for _, j := range *resp.JSON200 {
+		if want[util.Deref(j.JobId)] {
+			matched = append(matched, j)
+		}
+	}
+	sortJobs(matched, "")
+	return matched, nil
+}
+
+func formatSQLJobs(w io.Writer, jobs []client.Job) {
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
+	fmt.Fprintln(tw, "ID\tSTATUS\tDURATION\tTASKS\tFAILED\tSTAGES")
+	for _, j := range jobs {
+		stages := ""
+		if j.StageIds != nil {
+			s := make([]string, len(*j.StageIds))
+			for i, id := range *j.StageIds {
+				s[i] = strconv.Itoa(id)
+			}
+			stages = strings.Join(s, ",")
+		}
+		fmt.Fprintf(tw, "%d\t%s\t%s\t%d\t%d\t%s\n",
+			util.Deref(j.JobId),
+			util.Deref(j.Status),
+			jobDuration(j).Truncate(time.Millisecond),
+			util.Deref(j.NumTasks),
+			util.Deref(j.NumFailedTasks),
+			stages,
+		)
+	}
+	tw.Flush()
+}
+
+func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, id int, showInitialPlan bool, showJobs bool) error {
 	params := &client.GetSQLExecutionParams{}
 	resp, err := c.GetSQLExecutionWithResponse(context.Background(), appID, id, params)
 	if err != nil {
@@ -170,7 +282,26 @@ func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, 
 		if e.PlanDescription != nil && *e.PlanDescription != "" {
 			fmt.Fprintf(tw, "\nPlan:\n")
 			tw.Flush()
-			fmt.Fprintln(w, *e.PlanDescription)
+			plan := *e.PlanDescription
+			if !showInitialPlan {
+				plan = stripInitialPlans(plan)
+			}
+			fmt.Fprintln(w, plan)
+		}
+		if metrics := formatNodeMetrics(e.Nodes); metrics != "" {
+			fmt.Fprintf(w, "\nMetrics:\n")
+			fmt.Fprint(w, metrics)
+		}
+		if showJobs {
+			ids := collectJobIds(e)
+			if len(ids) > 0 {
+				jobs, err := fetchSQLJobs(c, ids)
+				if err != nil {
+					return err
+				}
+				fmt.Fprintf(w, "\nJobs (%d):\n", len(jobs))
+				formatSQLJobs(w, jobs)
+			}
 		}
 		return tw.Flush()
 	})

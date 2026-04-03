@@ -16,6 +16,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type timelineEvent struct {
+	Time time.Time
+	Kind string // "started" or "removed"
+	IDs  []string
+}
+
+type rawEvent struct {
+	time time.Time
+	id   string
+	kind string
+}
+
 func newExecutorsCmd() *cobra.Command {
 	var all bool
 	var summary bool
@@ -243,23 +255,12 @@ func listExecutorsSummary(cmd *cobra.Command, c client.ClientWithResponsesInterf
 	})
 }
 
-type timelineEvent struct {
-	Time time.Time
-	Kind string // "started" or "removed"
-	IDs  []string
-}
-
 func listExecutorsTimeline(cmd *cobra.Command, c client.ClientWithResponsesInterface) error {
 	execs, err := fetchExecutors(c, true)
 	if err != nil {
 		return err
 	}
 
-	type rawEvent struct {
-		t    time.Time
-		id   string
-		kind string
-	}
 	var events []rawEvent
 
 	for _, e := range execs {
@@ -269,17 +270,17 @@ func listExecutorsTimeline(cmd *cobra.Command, c client.ClientWithResponsesInter
 		}
 		if e.AddTime != nil {
 			if t, err := util.ParseSparkTime(*e.AddTime); err == nil {
-				events = append(events, rawEvent{t: t, id: id, kind: "started"})
+				events = append(events, rawEvent{time: t, id: id, kind: "started"})
 			}
 		}
 		if e.RemoveTime != nil {
 			if t, err := util.ParseSparkTime(*e.RemoveTime); err == nil {
-				events = append(events, rawEvent{t: t, id: id, kind: "removed"})
+				events = append(events, rawEvent{time: t, id: id, kind: "removed"})
 			}
 		}
 	}
 
-	sort.Slice(events, func(i, j int) bool { return events[i].t.Before(events[j].t) })
+	sort.Slice(events, func(i, j int) bool { return events[i].time.Before(events[j].time) })
 
 	// group events within 5 minutes with same kind
 	const window = 5 * time.Minute
@@ -288,7 +289,7 @@ func listExecutorsTimeline(cmd *cobra.Command, c client.ClientWithResponsesInter
 		j := i + 1
 		for j < len(events) &&
 			events[j].kind == events[i].kind &&
-			events[j].t.Sub(events[i].t) <= window {
+			events[j].time.Sub(events[i].time) <= window {
 			j++
 		}
 		ids := make([]string, j-i)
@@ -296,7 +297,7 @@ func listExecutorsTimeline(cmd *cobra.Command, c client.ClientWithResponsesInter
 			ids[k-i] = events[k].id
 		}
 		grouped = append(grouped, timelineEvent{
-			Time: events[i].t,
+			Time: events[i].time,
 			Kind: events[i].kind,
 			IDs:  ids,
 		})

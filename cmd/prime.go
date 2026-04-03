@@ -18,7 +18,9 @@ COMMANDS
   shs executors -a APP_ID         List active executors
   shs executors -a APP_ID EXEC    Get executor detail
   shs sql -a APP_ID               List SQL executions
-  shs sql -a APP_ID EXEC_ID       Get SQL execution detail with plan
+  shs sql -a APP_ID EXEC_ID       Get SQL execution detail with plan and metrics
+  shs sql -a APP_ID EXEC_ID --jobs          Include job summaries
+  shs sql -a APP_ID EXEC_ID --initial-plan  Include initial AQE plans
   shs env -a APP_ID               Show environment/config
   shs version                     CLI + server Spark version
 
@@ -39,7 +41,7 @@ COMMAND DETAILS
   jobs       --status running|succeeded|failed|unknown  --sort failed-tasks|duration|id  --group GROUP
   stages     --status active|complete|pending|failed  --sort failed-tasks|duration|id  --errors
   executors  --all (include dead)  --summary (peak memory/OOM view)  --sort failed-tasks|duration|gc|id
-  sql        --status completed|running|failed  --sort duration|id
+  sql        --status completed|running|failed  --sort duration|id  --jobs  --initial-plan
 
 DEFAULT SORT
   jobs:       failed first, then by duration descending
@@ -77,7 +79,8 @@ COMMON WORKFLOWS
 
   Investigate slow SQL queries:
     shs sql -a APP_ID --sort duration --limit 10
-    shs sql -a APP_ID EXEC_ID          # shows plan description
+    shs sql -a APP_ID EXEC_ID          # plan + node-level metrics (rows, shuffle, time)
+    shs sql -a APP_ID EXEC_ID --jobs   # also shows job summaries (status, duration, failed tasks)
 
   Get Spark config for an app:
     shs env -a APP_ID --section spark
@@ -92,14 +95,17 @@ DATA MODEL
   Executor     A JVM process running tasks. Has cores, memory, shuffle/IO stats.
                Detail view shows: memory usage, disk, task breakdown, RDD blocks.
   SQL          A SQL/DataFrame execution. Links to jobs via job IDs.
-               Detail view includes the physical plan description.
+               Detail view includes the physical plan (final only by default),
+               node-level metrics (row counts, shuffle bytes, time per operator),
+               and optionally inlined job summaries (--jobs).
 
 TIPS
   - Stage IDs appear in job output for cross-referencing.
   - Stage detail shows the latest attempt by default.
   - Duration is computed from submissionTime/completionTime.
   - Use -o json when you need to extract specific fields.
-  - SQL job IDs cross-reference with shs jobs output.
+  - SQL detail strips AQE initial plans by default; use --initial-plan to include them.
+  - SQL job IDs cross-reference with shs jobs output; use --jobs to inline them.
   - Executor TASK_TIME is cumulative task execution time, not wall-clock uptime.
   - All timestamps are UTC.
 `
