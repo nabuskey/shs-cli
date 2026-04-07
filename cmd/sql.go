@@ -276,7 +276,7 @@ func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, 
 	e := resp.JSON200
 
 	var jobs []client.Job
-	var stages *stageAgg
+	var stages *stageAggregation
 	if showJobs {
 		ids := collectJobIds(e)
 		if len(ids) > 0 {

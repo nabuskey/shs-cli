@@ -23,6 +23,8 @@ COMMANDS
   shs sql -a APP_ID EXEC_ID --initial-plan  Include initial AQE plans
   shs env -a APP_ID               Show environment/config
   shs compare --app-a APP1 --app-b APP2 EXEC1 EXEC2  Compare SQL executions across apps
+    --server-a NAME  Server for app A (overrides --server)
+    --server-b NAME  Server for app B (overrides --server)
   shs version                     CLI + server Spark version
 
 GLOBAL FLAGS
@@ -85,6 +87,7 @@ COMMON WORKFLOWS
 
   Compare same query across two runs:
     shs compare --app-a APP1 --app-b APP2 EXEC1 EXEC2  # duration, jobs, stages, shuffle, spill diff
+    shs compare --app-a APP1 --server-a prod --app-b APP2 --server-b staging EXEC1 EXEC2  # cross-server
 
   Get Spark config for an app:
     shs env -a APP_ID --section spark

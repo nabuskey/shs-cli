@@ -17,9 +17,9 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:           "shs",
-	Short:         "CLI for Apache Spark History Server",
-	SilenceUsage:  true,
+	Use:          "shs",
+	Short:        "CLI for Apache Spark History Server",
+	SilenceUsage: true,
 }
 
 func init() {
@@ -50,7 +50,7 @@ func Execute() error {
 
 func newClient(opts ...util.Option) (client.ClientWithResponsesInterface, error) {
 	if len(opts) == 0 {
-		opts = []util.Option{util.WithTimeout(timeout)}
+		opts = []util.Option{util.WithTimeout(timeout), util.WithServer(serverName)}
 	}
-	return util.NewSHSClient(configPath, serverName, opts...)
+	return util.NewSHSClient(configPath, opts...)
 }

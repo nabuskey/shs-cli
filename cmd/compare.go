@@ -15,6 +15,7 @@ import (
 
 func newCompareCmd() *cobra.Command {
 	var appA, appB string
+	var serverA, serverB string
 
 	cmd := &cobra.Command{
 		Use:   "compare EXEC_ID_A EXEC_ID_B",
@@ -32,22 +33,20 @@ func newCompareCmd() *cobra.Command {
 			if appA == "" || appB == "" {
 				return fmt.Errorf("both -a and -b flags are required")
 			}
-			c, err := newClient()
-			if err != nil {
-				return err
-			}
-			return runCompare(cmd, c, appA, idA, appB, idB)
+			return runCompare(cmd, serverA, appA, idA, serverB, appB, idB)
 		},
 	}
 
 	cmd.Flags().StringVar(&appA, "app-a", "", "First application ID (required)")
 	cmd.Flags().StringVar(&appB, "app-b", "", "Second application ID (required)")
+	cmd.Flags().StringVar(&serverA, "server-a", "", "Server name for app A (overrides --server)")
+	cmd.Flags().StringVar(&serverB, "server-b", "", "Server name for app B (overrides --server)")
 	cmd.MarkFlagRequired("app-a")
 	cmd.MarkFlagRequired("app-b")
 	return cmd
 }
 
-type stageAgg struct {
+type stageAggregation struct {
 	Count        int
 	Tasks        int
 	Duration     time.Duration
@@ -58,8 +57,25 @@ type stageAgg struct {
 	GCTime       int64
 }
 
-func aggStages(stages []client.StageData, jobStageIDs map[int]bool) stageAgg {
-	var a stageAgg
+type side struct {
+	App          string `json:"app"`
+	SQLID        int    `json:"sqlId"`
+	Description  string `json:"description"`
+	Status       string `json:"status"`
+	DurationMs   int64  `json:"durationMs"`
+	Jobs         int    `json:"jobs"`
+	Stages       int    `json:"stages"`
+	Tasks        int    `json:"tasks"`
+	StageTimeMs  int64  `json:"stageTimeMs"`
+	InputBytes   int64  `json:"inputBytes"`
+	ShuffleRead  int64  `json:"shuffleRead"`
+	ShuffleWrite int64  `json:"shuffleWrite"`
+	SpillDisk    int64  `json:"spillDisk"`
+	GCTimeMs     int64  `json:"gcTimeMs"`
+}
+
+func aggStages(stages []client.StageData, jobStageIDs map[int]bool) stageAggregation {
+	var a stageAggregation
 	seen := map[int]bool{}
 	for _, s := range stages {
 		sid := util.Deref(s.StageId)
@@ -127,25 +143,41 @@ func stageIDsFromJobs(jobs []client.Job) map[int]bool {
 	return m
 }
 
-func runCompare(cmd *cobra.Command, c client.ClientWithResponsesInterface, appA string, idA int, appB string, idB int) error {
-	sqlA, jobsA, err := fetchSQLAndJobs(cmd.Context(), c, appA, idA)
+func getClients(serverA, serverB string) (client.ClientWithResponsesInterface, client.ClientWithResponsesInterface, error) {
+	clientA, err := util.NewSHSClient(configPath, util.WithTimeout(timeout), util.WithServer(serverA))
+	if err != nil {
+		return nil, nil, err
+	}
+	clientB, err := util.NewSHSClient(configPath, util.WithTimeout(timeout), util.WithServer(serverB))
+	if err != nil {
+		return nil, nil, err
+	}
+	return clientA, clientB, nil
+}
+
+func runCompare(cmd *cobra.Command, serverA, appA string, idA int, serverB, appB string, idB int) error {
+	cA, cB, err := getClients(serverA, serverB)
 	if err != nil {
 		return err
 	}
-	sqlB, jobsB, err := fetchSQLAndJobs(cmd.Context(), c, appB, idB)
+	sqlA, jobsA, err := fetchSQLAndJobs(cmd.Context(), cA, appA, idA)
+	if err != nil {
+		return err
+	}
+	sqlB, jobsB, err := fetchSQLAndJobs(cmd.Context(), cB, appB, idB)
 	if err != nil {
 		return err
 	}
 
 	// fetch stages
-	stagesRespA, err := c.ListStagesWithResponse(cmd.Context(), appA, &client.ListStagesParams{})
+	stagesRespA, err := cA.ListStagesWithResponse(cmd.Context(), appA, &client.ListStagesParams{})
 	if err != nil {
 		return err
 	}
 	if stagesRespA.JSON200 == nil {
 		return fmt.Errorf("app %s stages: %s", appA, stagesRespA.HTTPResponse.Status)
 	}
-	stagesRespB, err := c.ListStagesWithResponse(cmd.Context(), appB, &client.ListStagesParams{})
+	stagesRespB, err := cB.ListStagesWithResponse(cmd.Context(), appB, &client.ListStagesParams{})
 	if err != nil {
 		return err
 	}
@@ -156,23 +188,7 @@ func runCompare(cmd *cobra.Command, c client.ClientWithResponsesInterface, appA 
 	aggA := aggStages(*stagesRespA.JSON200, stageIDsFromJobs(jobsA))
 	aggB := aggStages(*stagesRespB.JSON200, stageIDsFromJobs(jobsB))
 
-	type side struct {
-		App          string `json:"app"`
-		SQLID        int    `json:"sqlId"`
-		Description  string `json:"description"`
-		Status       string `json:"status"`
-		DurationMs   int64  `json:"durationMs"`
-		Jobs         int    `json:"jobs"`
-		Stages       int    `json:"stages"`
-		Tasks        int    `json:"tasks"`
-		StageTimeMs  int64  `json:"stageTimeMs"`
-		InputBytes   int64  `json:"inputBytes"`
-		ShuffleRead  int64  `json:"shuffleRead"`
-		ShuffleWrite int64  `json:"shuffleWrite"`
-		SpillDisk    int64  `json:"spillDisk"`
-		GCTimeMs     int64  `json:"gcTimeMs"`
-	}
-	mkSide := func(app string, sql *client.SQLExecution, jobs []client.Job, agg stageAgg) side {
+	mkSide := func(app string, sql *client.SQLExecution, jobs []client.Job, agg stageAggregation) side {
 		return side{
 			App: app, SQLID: util.Deref(sql.Id),
 			Description: util.Deref(sql.Description), Status: string(util.Deref(sql.Status)),

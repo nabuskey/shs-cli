@@ -11,7 +11,7 @@ import (
 
 const DefaultTimeout = 10 * time.Second
 
-func NewSHSClient(configPath, serverName string, opts ...Option) (client.ClientWithResponsesInterface, error) {
+func NewSHSClient(configPath string, opts ...Option) (client.ClientWithResponsesInterface, error) {
 	o := options{timeout: DefaultTimeout}
 	for _, fn := range opts {
 		fn(&o)
@@ -22,17 +22,17 @@ func NewSHSClient(configPath, serverName string, opts ...Option) (client.ClientW
 		return nil, fmt.Errorf("loading config: %w", err)
 	}
 
-	var srv config.Server
+	var server config.Server
 	var found bool
-	if serverName != "" {
-		srv, found = cfg.Servers[serverName]
+	if o.serverName != "" {
+		server, found = cfg.Servers[o.serverName]
 		if !found {
-			return nil, fmt.Errorf("server %q not found in config", serverName)
+			return nil, fmt.Errorf("server %q not found in config", o.serverName)
 		}
 	} else {
 		for _, s := range cfg.Servers {
 			if s.Default {
-				srv = s
+				server = s
 				found = true
 				break
 			}
@@ -43,15 +43,20 @@ func NewSHSClient(configPath, serverName string, opts ...Option) (client.ClientW
 	}
 
 	httpClient := &http.Client{Timeout: o.timeout}
-	return client.NewClientWithResponses(srv.URL+"/api/v1", client.WithHTTPClient(httpClient))
+	return client.NewClientWithResponses(server.URL+"/api/v1", client.WithHTTPClient(httpClient))
 }
 
 type options struct {
-	timeout time.Duration
+	timeout    time.Duration
+	serverName string
 }
 
 type Option func(*options)
 
 func WithTimeout(d time.Duration) Option {
 	return func(o *options) { o.timeout = d }
+}
+
+func WithServer(name string) Option {
+	return func(o *options) { o.serverName = name }
 }
