@@ -104,7 +104,7 @@ func listApps(cmd *cobra.Command, c client.ClientWithResponsesInterface, params 
 		sortApps(apps, sortBy, desc)
 	}
 
-	return printOutput(cmd.OutOrStdout(), apps, func(w io.Writer) error {
+	return util.PrintOutput(cmd.OutOrStdout(), apps, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 		fmt.Fprintln(tw, "ID\tNAME\tATTEMPTS")
 		for _, app := range apps {

@@ -125,7 +125,7 @@ func listJobs(cmd *cobra.Command, c client.ClientWithResponsesInterface, params 
 		jobs = jobs[:limit]
 	}
 
-	return printOutput(cmd.OutOrStdout(), jobs, func(w io.Writer) error {
+	return util.PrintOutput(cmd.OutOrStdout(), jobs, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 		fmt.Fprintln(tw, "ID\tSTATUS\tDESCRIPTION\tDURATION\tTASKS\tFAILED_TASKS\tSTAGES")
 		for _, j := range jobs {
@@ -171,7 +171,7 @@ func getJob(cmd *cobra.Command, c client.ClientWithResponsesInterface, jobId int
 	}
 
 	j := resp.JSON200
-	return printOutput(cmd.OutOrStdout(), j, func(w io.Writer) error {
+	return util.PrintOutput(cmd.OutOrStdout(), j, outputFmt, func(w io.Writer) error {
 		desc := util.Deref(j.Description)
 		if desc == "" {
 			desc = util.Deref(j.Name)

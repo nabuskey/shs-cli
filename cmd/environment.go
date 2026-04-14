@@ -40,7 +40,7 @@ func getEnvironment(cmd *cobra.Command, c client.ClientWithResponsesInterface, s
 	}
 
 	env := resp.JSON200
-	return printOutput(cmd.OutOrStdout(), env, func(w io.Writer) error {
+	return util.PrintOutput(cmd.OutOrStdout(), env, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 
 		if section == "" || section == "runtime" {

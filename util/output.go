@@ -1,4 +1,4 @@
-package cmd
+package util
 
 import (
 	"fmt"
@@ -8,8 +8,8 @@ import (
 	goyaml "github.com/goccy/go-yaml"
 )
 
-func printOutput(w io.Writer, v any, textFn func(io.Writer) error) error {
-	switch outputFmt {
+func PrintOutput(w io.Writer, v any, format string, textFn func(io.Writer) error) error {
+	switch format {
 	case "json":
 		b, err := gojson.MarshalIndent(v, "", "  ")
 		if err != nil {
@@ -28,6 +28,6 @@ func printOutput(w io.Writer, v any, textFn func(io.Writer) error) error {
 	case "txt":
 		return textFn(w)
 	default:
-		return fmt.Errorf("unsupported output format: %s", outputFmt)
+		return fmt.Errorf("unsupported output format: %s", format)
 	}
 }

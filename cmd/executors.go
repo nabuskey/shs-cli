@@ -133,7 +133,7 @@ func listExecutors(cmd *cobra.Command, c client.ClientWithResponsesInterface, al
 		execs = execs[:limit]
 	}
 
-	return printOutput(cmd.OutOrStdout(), execs, func(w io.Writer) error {
+	return util.PrintOutput(cmd.OutOrStdout(), execs, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 		fmt.Fprintln(tw, "ID\tACTIVE\tHOST\tTASKS\tFAILED\tTASK_TIME\tGC_TIME\tINPUT\tSHUFFLE_READ\tSHUFFLE_WRITE")
 		for _, e := range execs {
@@ -175,7 +175,7 @@ func getExecutor(cmd *cobra.Command, c client.ClientWithResponsesInterface, id s
 	}
 	e := execs[idx]
 
-	return printOutput(cmd.OutOrStdout(), e, func(w io.Writer) error {
+	return util.PrintOutput(cmd.OutOrStdout(), e, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 		fmt.Fprintf(tw, "Executor ID:\t%s\n", util.Deref(e.Id))
 		fmt.Fprintf(tw, "Active:\t%v\n", util.Deref(e.IsActive))
@@ -233,7 +233,7 @@ func listExecutorsSummary(cmd *cobra.Command, c client.ClientWithResponsesInterf
 		execs = execs[:limit]
 	}
 
-	return printOutput(cmd.OutOrStdout(), execs, func(w io.Writer) error {
+	return util.PrintOutput(cmd.OutOrStdout(), execs, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 		fmt.Fprintln(tw, "ID\tACTIVE\tADDED\tREMOVED\tTASKS\tPEAK_RSS\tPEAK_HEAP\tPEAK_DIRECT\tPEAK_OFFHEAP\tGC_TIME\tREMOVE_REASON")
 		for _, e := range execs {
@@ -317,7 +317,7 @@ func listExecutorsTimeline(cmd *cobra.Command, c client.ClientWithResponsesInter
 		i = j
 	}
 
-	return printOutput(cmd.OutOrStdout(), grouped, func(w io.Writer) error {
+	return util.PrintOutput(cmd.OutOrStdout(), grouped, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 		fmt.Fprintln(tw, "TIME\tEVENT\tEXECUTORS\tCOUNT")
 		for _, g := range grouped {

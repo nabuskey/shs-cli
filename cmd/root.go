@@ -41,6 +41,7 @@ func init() {
 		newLogsCmd(),
 		newPrimeCmd(),
 		newCompareCmd(),
+		newServersCmd(),
 	)
 }
 

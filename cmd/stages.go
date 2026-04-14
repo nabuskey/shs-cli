@@ -126,7 +126,7 @@ func listStages(cmd *cobra.Command, c client.ClientWithResponsesInterface, param
 		stages = stages[:limit]
 	}
 
-	return printOutput(cmd.OutOrStdout(), stages, func(w io.Writer) error {
+	return util.PrintOutput(cmd.OutOrStdout(), stages, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 		fmt.Fprintln(tw, "ID\tATTEMPT\tSTATUS\tDESCRIPTION\tTASKS\tFAILED\tDURATION\tINPUT\tSHUFFLE_READ\tSHUFFLE_WRITE")
 		for _, s := range stages {
@@ -170,7 +170,7 @@ func getStage(cmd *cobra.Command, c client.ClientWithResponsesInterface, stageId
 	// show latest attempt
 	s := attempts[len(attempts)-1]
 
-	return printOutput(cmd.OutOrStdout(), s, func(w io.Writer) error {
+	return util.PrintOutput(cmd.OutOrStdout(), s, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 		fmt.Fprintf(tw, "Stage ID:\t%d\n", util.Deref(s.StageId))
 		fmt.Fprintf(tw, "Attempt:\t%d\n", util.Deref(s.AttemptId))
@@ -224,7 +224,7 @@ func getStageErrors(cmd *cobra.Command, c client.ClientWithResponsesInterface, s
 	}
 
 	tasks := *taskResp.JSON200
-	return printOutput(cmd.OutOrStdout(), tasks, func(w io.Writer) error {
+	return util.PrintOutput(cmd.OutOrStdout(), tasks, outputFmt, func(w io.Writer) error {
 		if len(tasks) == 0 {
 			fmt.Fprintln(w, "No failed tasks.")
 			return nil

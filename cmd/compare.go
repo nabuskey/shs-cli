@@ -203,7 +203,7 @@ func runCompare(cmd *cobra.Command, serverA, appA string, idA int, serverB, appB
 		B side `json:"b"`
 	}{mkSide(appA, sqlA, jobsA, aggA), mkSide(appB, sqlB, jobsB, aggB)}
 
-	return printOutput(cmd.OutOrStdout(), r, func(w io.Writer) error {
+	return util.PrintOutput(cmd.OutOrStdout(), r, outputFmt, func(w io.Writer) error {
 		fmt.Fprintf(w, "App A:  %s  (SQL %d)\n", appA, util.Deref(sqlA.Id))
 		fmt.Fprintf(w, "App B:  %s  (SQL %d)\n", appB, util.Deref(sqlB.Id))
 		fmt.Fprintf(w, "Query:  A=%s  B=%s\n", util.Deref(sqlA.Description), util.Deref(sqlB.Description))

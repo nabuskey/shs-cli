@@ -37,7 +37,7 @@ func showVersion(cmd *cobra.Command) error {
 		}
 	}
 
-	return printOutput(cmd.OutOrStdout(), info, func(w io.Writer) error {
+	return util.PrintOutput(cmd.OutOrStdout(), info, outputFmt, func(w io.Writer) error {
 		fmt.Fprintf(w, "CLI:    %s\n", info.CLI)
 		if info.Server != "" {
 			fmt.Fprintf(w, "Server: %s\n", info.Server)

@@ -127,7 +127,7 @@ func listSQLExecutions(cmd *cobra.Command, c client.ClientWithResponsesInterface
 		execs = execs[:limit]
 	}
 
-	return printOutput(cmd.OutOrStdout(), execs, func(w io.Writer) error {
+	return util.PrintOutput(cmd.OutOrStdout(), execs, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 		fmt.Fprintln(tw, "ID\tSTATUS\tDESCRIPTION\tDURATION\tFAILED_JOBS\tSUCCESS_JOBS\tRUNNING_JOBS")
 		for _, e := range execs {
@@ -295,7 +295,7 @@ func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, 
 		}
 	}
 
-	return printOutput(cmd.OutOrStdout(), e, func(w io.Writer) error {
+	return util.PrintOutput(cmd.OutOrStdout(), e, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 		fmt.Fprintf(tw, "Execution ID:\t%d\n", util.Deref(e.Id))
 		fmt.Fprintf(tw, "Status:\t%s\n", util.Deref(e.Status))
