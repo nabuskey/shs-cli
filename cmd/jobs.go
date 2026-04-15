@@ -127,7 +127,7 @@ func listJobs(cmd *cobra.Command, c client.ClientWithResponsesInterface, params 
 
 	return util.PrintOutput(cmd.OutOrStdout(), jobs, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-		fmt.Fprintln(tw, "ID\tSTATUS\tDESCRIPTION\tDURATION\tTASKS\tFAILED_TASKS\tSTAGES")
+		_, _ = fmt.Fprintln(tw, "ID\tSTATUS\tDESCRIPTION\tDURATION\tTASKS\tFAILED_TASKS\tSTAGES")
 		for _, j := range jobs {
 			desc := util.Deref(j.Description)
 			if desc == "" {
@@ -141,7 +141,7 @@ func listJobs(cmd *cobra.Command, c client.ClientWithResponsesInterface, params 
 				}
 				stages = strings.Join(ids, ",")
 			}
-			fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%d\t%d\t%s\n",
+			_, _ = fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%d\t%d\t%s\n",
 				util.Deref(j.JobId),
 				util.Deref(j.Status),
 				desc,
@@ -155,7 +155,7 @@ func listJobs(cmd *cobra.Command, c client.ClientWithResponsesInterface, params 
 			return err
 		}
 		if limit > 0 && len(*resp.JSON200) > limit {
-			fmt.Fprintf(w, "\nShowing %d of %d jobs. Use --limit 0 to list all.\n", limit, len(*resp.JSON200))
+			_, _ = fmt.Fprintf(w, "\nShowing %d of %d jobs. Use --limit 0 to list all.\n", limit, len(*resp.JSON200))
 		}
 		return nil
 	})
@@ -185,16 +185,16 @@ func getJob(cmd *cobra.Command, c client.ClientWithResponsesInterface, jobId int
 			stages = strings.Join(ids, ",")
 		}
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-		fmt.Fprintf(tw, "Job ID:\t%d\n", util.Deref(j.JobId))
-		fmt.Fprintf(tw, "Status:\t%s\n", util.Deref(j.Status))
-		fmt.Fprintf(tw, "Description:\t%s\n", desc)
-		fmt.Fprintf(tw, "Duration:\t%s\n", jobDuration(*j).Truncate(time.Millisecond))
-		fmt.Fprintf(tw, "Tasks:\t%d (failed: %d, killed: %d, skipped: %d)\n",
+		_, _ = fmt.Fprintf(tw, "Job ID:\t%d\n", util.Deref(j.JobId))
+		_, _ = fmt.Fprintf(tw, "Status:\t%s\n", util.Deref(j.Status))
+		_, _ = fmt.Fprintf(tw, "Description:\t%s\n", desc)
+		_, _ = fmt.Fprintf(tw, "Duration:\t%s\n", jobDuration(*j).Truncate(time.Millisecond))
+		_, _ = fmt.Fprintf(tw, "Tasks:\t%d (failed: %d, killed: %d, skipped: %d)\n",
 			util.Deref(j.NumTasks), util.Deref(j.NumFailedTasks), util.Deref(j.NumKilledTasks), util.Deref(j.NumSkippedTasks))
-		fmt.Fprintf(tw, "Stages:\t%s (failed: %d, skipped: %d)\n",
+		_, _ = fmt.Fprintf(tw, "Stages:\t%s (failed: %d, skipped: %d)\n",
 			stages, util.Deref(j.NumFailedStages), util.Deref(j.NumSkippedStages))
 		if j.JobGroup != nil {
-			fmt.Fprintf(tw, "Group:\t%s\n", *j.JobGroup)
+			_, _ = fmt.Fprintf(tw, "Group:\t%s\n", *j.JobGroup)
 		}
 		return tw.Flush()
 	})

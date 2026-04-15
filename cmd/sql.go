@@ -129,13 +129,13 @@ func listSQLExecutions(cmd *cobra.Command, c client.ClientWithResponsesInterface
 
 	return util.PrintOutput(cmd.OutOrStdout(), execs, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-		fmt.Fprintln(tw, "ID\tSTATUS\tDESCRIPTION\tDURATION\tFAILED_JOBS\tSUCCESS_JOBS\tRUNNING_JOBS")
+		_, _ = fmt.Fprintln(tw, "ID\tSTATUS\tDESCRIPTION\tDURATION\tFAILED_JOBS\tSUCCESS_JOBS\tRUNNING_JOBS")
 		for _, e := range execs {
 			desc := util.Deref(e.Description)
 			if len(desc) > 80 {
 				desc = desc[:77] + "..."
 			}
-			fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			_, _ = fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\t%s\n",
 				util.Deref(e.Id),
 				util.Deref(e.Status),
 				desc,
@@ -149,7 +149,7 @@ func listSQLExecutions(cmd *cobra.Command, c client.ClientWithResponsesInterface
 			return err
 		}
 		if limit > 0 && total > limit {
-			fmt.Fprintf(w, "\nShowing %d of %d executions. Use --limit 0 to list all.\n", limit, total)
+			_, _ = fmt.Fprintf(w, "\nShowing %d of %d executions. Use --limit 0 to list all.\n", limit, total)
 		}
 		return nil
 	})
@@ -195,10 +195,10 @@ func formatNodeMetrics(nodes *[]client.SQLPlanNode) string {
 		if n.Metrics == nil || len(*n.Metrics) == 0 {
 			continue
 		}
-		b.WriteString(fmt.Sprintf("(%d) %s\n", util.Deref(n.NodeId), util.Deref(n.NodeName)))
+		_, _ = fmt.Fprintf(&b, "(%d) %s\n", util.Deref(n.NodeId), util.Deref(n.NodeName))
 		for _, m := range *n.Metrics {
 			v := strings.Join(strings.Fields(util.Deref(m.Value)), " ")
-			b.WriteString(fmt.Sprintf("  %s: %s\n", util.Deref(m.Name), v))
+			_, _ = fmt.Fprintf(&b, "  %s: %s\n", util.Deref(m.Name), v)
 		}
 		b.WriteByte('\n')
 	}
@@ -241,7 +241,7 @@ func fetchSQLJobs(ctx context.Context, c client.ClientWithResponsesInterface, id
 
 func formatSQLJobs(w io.Writer, jobs []client.Job) {
 	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(tw, "ID\tSTATUS\tDURATION\tTASKS\tFAILED\tSTAGES")
+	_, _ = fmt.Fprintln(tw, "ID\tSTATUS\tDURATION\tTASKS\tFAILED\tSTAGES")
 	for _, j := range jobs {
 		stages := ""
 		if j.StageIds != nil {
@@ -251,7 +251,7 @@ func formatSQLJobs(w io.Writer, jobs []client.Job) {
 			}
 			stages = strings.Join(s, ",")
 		}
-		fmt.Fprintf(tw, "%d\t%s\t%s\t%d\t%d\t%s\n",
+		_, _ = fmt.Fprintf(tw, "%d\t%s\t%s\t%d\t%d\t%s\n",
 			util.Deref(j.JobId),
 			util.Deref(j.Status),
 			jobDuration(j).Truncate(time.Millisecond),
@@ -260,7 +260,7 @@ func formatSQLJobs(w io.Writer, jobs []client.Job) {
 			stages,
 		)
 	}
-	tw.Flush()
+	_ = tw.Flush()
 }
 
 func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, id int, showInitialPlan bool, showJobs bool) error {
@@ -297,40 +297,40 @@ func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, 
 
 	return util.PrintOutput(cmd.OutOrStdout(), e, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-		fmt.Fprintf(tw, "Execution ID:\t%d\n", util.Deref(e.Id))
-		fmt.Fprintf(tw, "Status:\t%s\n", util.Deref(e.Status))
-		fmt.Fprintf(tw, "Description:\t%s\n", util.Deref(e.Description))
-		fmt.Fprintf(tw, "Submitted:\t%s\n", util.Deref(e.SubmissionTime))
-		fmt.Fprintf(tw, "Duration:\t%s\n", sqlDuration(*e).Truncate(time.Millisecond))
-		fmt.Fprintf(tw, "Success Jobs:\t%s\n", formatJobIds(e.SuccessJobIds))
-		fmt.Fprintf(tw, "Failed Jobs:\t%s\n", formatJobIds(e.FailedJobIds))
-		fmt.Fprintf(tw, "Running Jobs:\t%s\n", formatJobIds(e.RunningJobIds))
+		_, _ = fmt.Fprintf(tw, "Execution ID:\t%d\n", util.Deref(e.Id))
+		_, _ = fmt.Fprintf(tw, "Status:\t%s\n", util.Deref(e.Status))
+		_, _ = fmt.Fprintf(tw, "Description:\t%s\n", util.Deref(e.Description))
+		_, _ = fmt.Fprintf(tw, "Submitted:\t%s\n", util.Deref(e.SubmissionTime))
+		_, _ = fmt.Fprintf(tw, "Duration:\t%s\n", sqlDuration(*e).Truncate(time.Millisecond))
+		_, _ = fmt.Fprintf(tw, "Success Jobs:\t%s\n", formatJobIds(e.SuccessJobIds))
+		_, _ = fmt.Fprintf(tw, "Failed Jobs:\t%s\n", formatJobIds(e.FailedJobIds))
+		_, _ = fmt.Fprintf(tw, "Running Jobs:\t%s\n", formatJobIds(e.RunningJobIds))
 		if e.PlanDescription != nil && *e.PlanDescription != "" {
-			fmt.Fprintf(tw, "\nPlan:\n")
-			tw.Flush()
+			_, _ = fmt.Fprintf(tw, "\nPlan:\n")
+			_ = tw.Flush()
 			plan := *e.PlanDescription
 			if !showInitialPlan {
 				plan = stripInitialPlans(plan)
 			}
-			fmt.Fprintln(w, plan)
+			_, _ = fmt.Fprintln(w, plan)
 		}
 		if metrics := formatNodeMetrics(e.Nodes); metrics != "" {
-			fmt.Fprintf(w, "\nMetrics:\n")
-			fmt.Fprint(w, metrics)
+			_, _ = fmt.Fprintf(w, "\nMetrics:\n")
+			_, _ = fmt.Fprint(w, metrics)
 		}
 		if len(jobs) > 0 {
-			fmt.Fprintf(w, "\nJobs (%d):\n", len(jobs))
+			_, _ = fmt.Fprintf(w, "\nJobs (%d):\n", len(jobs))
 			formatSQLJobs(w, jobs)
 		}
 		if stages != nil {
-			fmt.Fprintf(w, "\nAggregate Stage Metrics:\n")
-			fmt.Fprintf(w, "  Stages:        %d\n", stages.Count)
-			fmt.Fprintf(w, "  Tasks:         %d\n", stages.Tasks)
-			fmt.Fprintf(w, "  Input:         %s\n", util.FormatBytes(stages.InputBytes))
-			fmt.Fprintf(w, "  Shuffle Read:  %s\n", util.FormatBytes(stages.ShuffleRead))
-			fmt.Fprintf(w, "  Shuffle Write: %s\n", util.FormatBytes(stages.ShuffleWrite))
-			fmt.Fprintf(w, "  Spill (Disk):  %s\n", util.FormatBytes(stages.SpillDisk))
-			fmt.Fprintf(w, "  GC Time:       %s\n", fmtMs(stages.GCTime))
+			_, _ = fmt.Fprintf(w, "\nAggregate Stage Metrics:\n")
+			_, _ = fmt.Fprintf(w, "  Stages:        %d\n", stages.Count)
+			_, _ = fmt.Fprintf(w, "  Tasks:         %d\n", stages.Tasks)
+			_, _ = fmt.Fprintf(w, "  Input:         %s\n", util.FormatBytes(stages.InputBytes))
+			_, _ = fmt.Fprintf(w, "  Shuffle Read:  %s\n", util.FormatBytes(stages.ShuffleRead))
+			_, _ = fmt.Fprintf(w, "  Shuffle Write: %s\n", util.FormatBytes(stages.ShuffleWrite))
+			_, _ = fmt.Fprintf(w, "  Spill (Disk):  %s\n", util.FormatBytes(stages.SpillDisk))
+			_, _ = fmt.Fprintf(w, "  GC Time:       %s\n", fmtMs(stages.GCTime))
 		}
 		return tw.Flush()
 	})

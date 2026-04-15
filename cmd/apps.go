@@ -106,7 +106,7 @@ func listApps(cmd *cobra.Command, c client.ClientWithResponsesInterface, params 
 
 	return util.PrintOutput(cmd.OutOrStdout(), apps, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-		fmt.Fprintln(tw, "ID\tNAME\tATTEMPTS")
+		_, _ = fmt.Fprintln(tw, "ID\tNAME\tATTEMPTS")
 		for _, app := range apps {
 			name, id := "", ""
 			if app.Name != nil {
@@ -119,13 +119,13 @@ func listApps(cmd *cobra.Command, c client.ClientWithResponsesInterface, params 
 			if app.Attempts != nil {
 				attempts = len(*app.Attempts)
 			}
-			fmt.Fprintf(tw, "%s\t%s\t%d\n", id, name, attempts)
+			_, _ = fmt.Fprintf(tw, "%s\t%s\t%d\n", id, name, attempts)
 		}
 		if err := tw.Flush(); err != nil {
 			return err
 		}
 		if limit > 0 && len(apps) >= limit {
-			fmt.Fprintf(w, "\nShowing %d applications. Use --limit 0 to list all.\n", limit)
+			_, _ = fmt.Fprintf(w, "\nShowing %d applications. Use --limit 0 to list all.\n", limit)
 		}
 		return nil
 	})

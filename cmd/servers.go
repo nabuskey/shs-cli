@@ -22,7 +22,7 @@ func newServersCmd() *cobra.Command {
 			}
 			return util.PrintOutput(cmd.OutOrStdout(), conf.Servers, outputFmt, func(w io.Writer) error {
 				tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-				fmt.Fprintf(tw, "Name\tURL\tDefault\n")
+				_, _ = fmt.Fprintf(tw, "Name\tURL\tDefault\n")
 				for name, server := range conf.Servers {
 					_, err := fmt.Fprintf(tw, "%s\t%s\t%t\n", name, server.URL, server.Default)
 					if err != nil {

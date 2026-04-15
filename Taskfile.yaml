@@ -1,14 +1,15 @@
 version: '3'
 
 vars:
+  GOLANGCI_LINT_VERSION: v2.11.4
   OAPI_CODEGEN_VERSION: v2.6.0
   BIN_DIR: ./bin
   CLIENT_DIR: ./client
   SPEC: ./openapi.yaml
 
 tasks:
-  download:
-    desc: Download oapi-codegen binary
+  install-ooapi-codegen:
+    desc: Install oapi-codegen binary
     cmds:
       - mkdir -p {{.BIN_DIR}}
       - GOBIN=$(pwd)/bin go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@{{.OAPI_CODEGEN_VERSION}}
@@ -17,7 +18,7 @@ tasks:
 
   generate:
     desc: Generate Go client from OpenAPI spec
-    deps: [download]
+    deps: [install-oapi-codegen]
     cmds:
       - mkdir -p {{.CLIENT_DIR}}
       - '{{.BIN_DIR}}/oapi-codegen -generate types -package client -o {{.CLIENT_DIR}}/types.gen.go {{.SPEC}}'
@@ -32,6 +33,30 @@ tasks:
     desc: Run unit tests
     cmds:
       - go test ./... -count=1
+
+  install-golangci-lint:
+    desc: Install golangci-lint binary
+    vars:
+      VERSION: '{{trimPrefix "v" .GOLANGCI_LINT_VERSION}}'
+      OS:
+        sh: uname -s | tr '[:upper:]' '[:lower:]'
+      ARCH:
+        sh: uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/'
+    cmds:
+      - mkdir -p {{.BIN_DIR}}
+      - curl -sSfL -o {{.BIN_DIR}}/golangci-lint.tar.gz
+          https://github.com/golangci/golangci-lint/releases/download/{{.GOLANGCI_LINT_VERSION}}/golangci-lint-{{.VERSION}}-{{.OS}}-{{.ARCH}}.tar.gz
+      - tar -xzf {{.BIN_DIR}}/golangci-lint.tar.gz -C {{.BIN_DIR}} --strip-components=1
+          golangci-lint-{{.VERSION}}-{{.OS}}-{{.ARCH}}/golangci-lint
+      - rm {{.BIN_DIR}}/golangci-lint.tar.gz
+    status:
+      - test -x {{.BIN_DIR}}/golangci-lint
+
+  lint:
+    desc: Run golangci-lint
+    deps: [install-golangci-lint]
+    cmds:
+      - '{{.BIN_DIR}}/golangci-lint run ./...'
 
   build:
     desc: Build the shs binary

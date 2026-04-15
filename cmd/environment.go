@@ -45,11 +45,11 @@ func getEnvironment(cmd *cobra.Command, c client.ClientWithResponsesInterface, s
 
 		if section == "" || section == "runtime" {
 			if env.Runtime != nil {
-				fmt.Fprintln(tw, "=== Runtime ===")
-				fmt.Fprintf(tw, "Java Home\t%s\n", util.Deref(env.Runtime.JavaHome))
-				fmt.Fprintf(tw, "Java Version\t%s\n", util.Deref(env.Runtime.JavaVersion))
-				fmt.Fprintf(tw, "Scala Version\t%s\n", util.Deref(env.Runtime.ScalaVersion))
-				fmt.Fprintln(tw)
+				_, _ = fmt.Fprintln(tw, "=== Runtime ===")
+				_, _ = fmt.Fprintf(tw, "Java Home\t%s\n", util.Deref(env.Runtime.JavaHome))
+				_, _ = fmt.Fprintf(tw, "Java Version\t%s\n", util.Deref(env.Runtime.JavaVersion))
+				_, _ = fmt.Fprintf(tw, "Scala Version\t%s\n", util.Deref(env.Runtime.ScalaVersion))
+				_, _ = fmt.Fprintln(tw)
 			}
 		}
 
@@ -70,13 +70,13 @@ func getEnvironment(cmd *cobra.Command, c client.ClientWithResponsesInterface, s
 				continue
 			}
 			if s.data != nil && len(*s.data) > 0 {
-				fmt.Fprintf(tw, "=== %s ===\n", s.name)
+				_, _ = fmt.Fprintf(tw, "=== %s ===\n", s.name)
 				for _, pair := range *s.data {
 					if len(pair) >= 2 {
-						fmt.Fprintf(tw, "%s\t%s\n", pair[0], pair[1])
+						_, _ = fmt.Fprintf(tw, "%s\t%s\n", pair[0], pair[1])
 					}
 				}
-				fmt.Fprintln(tw)
+				_, _ = fmt.Fprintln(tw)
 			}
 		}
 

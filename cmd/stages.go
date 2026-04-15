@@ -128,9 +128,9 @@ func listStages(cmd *cobra.Command, c client.ClientWithResponsesInterface, param
 
 	return util.PrintOutput(cmd.OutOrStdout(), stages, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-		fmt.Fprintln(tw, "ID\tATTEMPT\tSTATUS\tDESCRIPTION\tTASKS\tFAILED\tDURATION\tINPUT\tSHUFFLE_READ\tSHUFFLE_WRITE")
+		_, _ = fmt.Fprintln(tw, "ID\tATTEMPT\tSTATUS\tDESCRIPTION\tTASKS\tFAILED\tDURATION\tINPUT\tSHUFFLE_READ\tSHUFFLE_WRITE")
 		for _, s := range stages {
-			fmt.Fprintf(tw, "%d\t%d\t%s\t%s\t%d\t%d\t%s\t%s\t%s\t%s\n",
+			_, _ = fmt.Fprintf(tw, "%d\t%d\t%s\t%s\t%d\t%d\t%s\t%s\t%s\t%s\n",
 				util.Deref(s.StageId),
 				util.Deref(s.AttemptId),
 				util.Deref(s.Status),
@@ -147,7 +147,7 @@ func listStages(cmd *cobra.Command, c client.ClientWithResponsesInterface, param
 			return err
 		}
 		if limit > 0 && total > limit {
-			fmt.Fprintf(w, "\nShowing %d of %d stages. Use --limit 0 to list all.\n", limit, total)
+			_, _ = fmt.Fprintf(w, "\nShowing %d of %d stages. Use --limit 0 to list all.\n", limit, total)
 		}
 		return nil
 	})
@@ -172,26 +172,26 @@ func getStage(cmd *cobra.Command, c client.ClientWithResponsesInterface, stageId
 
 	return util.PrintOutput(cmd.OutOrStdout(), s, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-		fmt.Fprintf(tw, "Stage ID:\t%d\n", util.Deref(s.StageId))
-		fmt.Fprintf(tw, "Attempt:\t%d\n", util.Deref(s.AttemptId))
-		fmt.Fprintf(tw, "Status:\t%s\n", util.Deref(s.Status))
-		fmt.Fprintf(tw, "Description:\t%s\n", stageDesc(s))
-		fmt.Fprintf(tw, "Name:\t%s\n", util.Deref(s.Name))
-		fmt.Fprintf(tw, "Duration:\t%s\n", stageDuration(s).Truncate(time.Millisecond))
-		fmt.Fprintf(tw, "Tasks:\t%d (failed: %d, killed: %d)\n",
+		_, _ = fmt.Fprintf(tw, "Stage ID:\t%d\n", util.Deref(s.StageId))
+		_, _ = fmt.Fprintf(tw, "Attempt:\t%d\n", util.Deref(s.AttemptId))
+		_, _ = fmt.Fprintf(tw, "Status:\t%s\n", util.Deref(s.Status))
+		_, _ = fmt.Fprintf(tw, "Description:\t%s\n", stageDesc(s))
+		_, _ = fmt.Fprintf(tw, "Name:\t%s\n", util.Deref(s.Name))
+		_, _ = fmt.Fprintf(tw, "Duration:\t%s\n", stageDuration(s).Truncate(time.Millisecond))
+		_, _ = fmt.Fprintf(tw, "Tasks:\t%d (failed: %d, killed: %d)\n",
 			util.Deref(s.NumTasks), util.Deref(s.NumFailedTasks), util.Deref(s.NumKilledTasks))
-		fmt.Fprintf(tw, "Input:\t%s (%d records)\n",
+		_, _ = fmt.Fprintf(tw, "Input:\t%s (%d records)\n",
 			util.DerefBytes(s.InputBytes), util.Deref(s.InputRecords))
-		fmt.Fprintf(tw, "Output:\t%s (%d records)\n",
+		_, _ = fmt.Fprintf(tw, "Output:\t%s (%d records)\n",
 			util.DerefBytes(s.OutputBytes), util.Deref(s.OutputRecords))
-		fmt.Fprintf(tw, "Shuffle Read:\t%s (%d records)\n",
+		_, _ = fmt.Fprintf(tw, "Shuffle Read:\t%s (%d records)\n",
 			util.DerefBytes(s.ShuffleReadBytes), util.Deref(s.ShuffleReadRecords))
-		fmt.Fprintf(tw, "Shuffle Write:\t%s (%d records)\n",
+		_, _ = fmt.Fprintf(tw, "Shuffle Write:\t%s (%d records)\n",
 			util.DerefBytes(s.ShuffleWriteBytes), util.Deref(s.ShuffleWriteRecords))
-		fmt.Fprintf(tw, "Memory Spilled:\t%s\n", util.DerefBytes(s.MemoryBytesSpilled))
-		fmt.Fprintf(tw, "Disk Spilled:\t%s\n", util.DerefBytes(s.DiskBytesSpilled))
-		fmt.Fprintf(tw, "GC Time:\t%dms\n", util.Deref(s.JvmGcTime))
-		fmt.Fprintf(tw, "Pool:\t%s\n", util.Deref(s.SchedulingPool))
+		_, _ = fmt.Fprintf(tw, "Memory Spilled:\t%s\n", util.DerefBytes(s.MemoryBytesSpilled))
+		_, _ = fmt.Fprintf(tw, "Disk Spilled:\t%s\n", util.DerefBytes(s.DiskBytesSpilled))
+		_, _ = fmt.Fprintf(tw, "GC Time:\t%dms\n", util.Deref(s.JvmGcTime))
+		_, _ = fmt.Fprintf(tw, "Pool:\t%s\n", util.Deref(s.SchedulingPool))
 		return tw.Flush()
 	})
 }
@@ -226,17 +226,17 @@ func getStageErrors(cmd *cobra.Command, c client.ClientWithResponsesInterface, s
 	tasks := *taskResp.JSON200
 	return util.PrintOutput(cmd.OutOrStdout(), tasks, outputFmt, func(w io.Writer) error {
 		if len(tasks) == 0 {
-			fmt.Fprintln(w, "No failed tasks.")
+			_, _ = fmt.Fprintln(w, "No failed tasks.")
 			return nil
 		}
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-		fmt.Fprintln(tw, "TASK\tATTEMPT\tEXECUTOR\tSTATUS\tERROR")
+		_, _ = fmt.Fprintln(tw, "TASK\tATTEMPT\tEXECUTOR\tSTATUS\tERROR")
 		for _, t := range tasks {
 			errMsg := util.Deref(t.ErrorMessage)
 			if i := strings.IndexByte(errMsg, '\n'); i >= 0 {
 				errMsg = errMsg[:i]
 			}
-			fmt.Fprintf(tw, "%d\t%d\t%s\t%s\t%s\n",
+			_, _ = fmt.Fprintf(tw, "%d\t%d\t%s\t%s\t%s\n",
 				util.Deref(t.TaskId),
 				util.Deref(t.Attempt),
 				util.Deref(t.ExecutorId),

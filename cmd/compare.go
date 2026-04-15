@@ -41,8 +41,8 @@ func newCompareCmd() *cobra.Command {
 	cmd.Flags().StringVar(&appB, "app-b", "", "Second application ID (required)")
 	cmd.Flags().StringVar(&serverA, "server-a", "", "Server name for app A (overrides --server)")
 	cmd.Flags().StringVar(&serverB, "server-b", "", "Server name for app B (overrides --server)")
-	cmd.MarkFlagRequired("app-a")
-	cmd.MarkFlagRequired("app-b")
+	_ = cmd.MarkFlagRequired("app-a")
+	_ = cmd.MarkFlagRequired("app-b")
 	return cmd
 }
 
@@ -204,25 +204,25 @@ func runCompare(cmd *cobra.Command, serverA, appA string, idA int, serverB, appB
 	}{mkSide(appA, sqlA, jobsA, aggA), mkSide(appB, sqlB, jobsB, aggB)}
 
 	return util.PrintOutput(cmd.OutOrStdout(), r, outputFmt, func(w io.Writer) error {
-		fmt.Fprintf(w, "App A:  %s  (SQL %d)\n", appA, util.Deref(sqlA.Id))
-		fmt.Fprintf(w, "App B:  %s  (SQL %d)\n", appB, util.Deref(sqlB.Id))
-		fmt.Fprintf(w, "Query:  A=%s  B=%s\n", util.Deref(sqlA.Description), util.Deref(sqlB.Description))
-		fmt.Fprintf(w, "Status: A=%s  B=%s\n", util.Deref(sqlA.Status), util.Deref(sqlB.Status))
+		_, _ = fmt.Fprintf(w, "App A:  %s  (SQL %d)\n", appA, util.Deref(sqlA.Id))
+		_, _ = fmt.Fprintf(w, "App B:  %s  (SQL %d)\n", appB, util.Deref(sqlB.Id))
+		_, _ = fmt.Fprintf(w, "Query:  A=%s  B=%s\n", util.Deref(sqlA.Description), util.Deref(sqlB.Description))
+		_, _ = fmt.Fprintf(w, "Status: A=%s  B=%s\n", util.Deref(sqlA.Status), util.Deref(sqlB.Status))
 
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-		fmt.Fprintf(tw, "\n\tA\tB\tDelta\n")
+		_, _ = fmt.Fprintf(tw, "\n\tA\tB\tDelta\n")
 
 		durA, durB := sqlDuration(*sqlA), sqlDuration(*sqlB)
-		fmt.Fprintf(tw, "Duration:\t%s\t%s\t%s\n", durA.Truncate(time.Millisecond), durB.Truncate(time.Millisecond), fmtDelta(durB-durA))
-		fmt.Fprintf(tw, "Jobs:\t%d\t%d\t%+d\n", len(jobsA), len(jobsB), len(jobsB)-len(jobsA))
-		fmt.Fprintf(tw, "Stages:\t%d\t%d\t%+d\n", aggA.Count, aggB.Count, aggB.Count-aggA.Count)
-		fmt.Fprintf(tw, "Tasks:\t%d\t%d\t%+d\n", aggA.Tasks, aggB.Tasks, aggB.Tasks-aggA.Tasks)
-		fmt.Fprintf(tw, "Stage Time:\t%s\t%s\t%s\n", aggA.Duration.Truncate(time.Millisecond), aggB.Duration.Truncate(time.Millisecond), fmtDelta(aggB.Duration-aggA.Duration))
-		fmt.Fprintf(tw, "Input:\t%s\t%s\t%s\n", util.FormatBytes(aggA.InputBytes), util.FormatBytes(aggB.InputBytes), fmtDeltaBytes(aggB.InputBytes-aggA.InputBytes))
-		fmt.Fprintf(tw, "Shuffle Read:\t%s\t%s\t%s\n", util.FormatBytes(aggA.ShuffleRead), util.FormatBytes(aggB.ShuffleRead), fmtDeltaBytes(aggB.ShuffleRead-aggA.ShuffleRead))
-		fmt.Fprintf(tw, "Shuffle Write:\t%s\t%s\t%s\n", util.FormatBytes(aggA.ShuffleWrite), util.FormatBytes(aggB.ShuffleWrite), fmtDeltaBytes(aggB.ShuffleWrite-aggA.ShuffleWrite))
-		fmt.Fprintf(tw, "Spill (Disk):\t%s\t%s\t%s\n", util.FormatBytes(aggA.SpillDisk), util.FormatBytes(aggB.SpillDisk), fmtDeltaBytes(aggB.SpillDisk-aggA.SpillDisk))
-		fmt.Fprintf(tw, "GC Time:\t%s\t%s\t%s\n", fmtMs(aggA.GCTime), fmtMs(aggB.GCTime), fmtDelta(time.Duration(aggB.GCTime-aggA.GCTime)*time.Millisecond))
+		_, _ = fmt.Fprintf(tw, "Duration:\t%s\t%s\t%s\n", durA.Truncate(time.Millisecond), durB.Truncate(time.Millisecond), fmtDelta(durB-durA))
+		_, _ = fmt.Fprintf(tw, "Jobs:\t%d\t%d\t%+d\n", len(jobsA), len(jobsB), len(jobsB)-len(jobsA))
+		_, _ = fmt.Fprintf(tw, "Stages:\t%d\t%d\t%+d\n", aggA.Count, aggB.Count, aggB.Count-aggA.Count)
+		_, _ = fmt.Fprintf(tw, "Tasks:\t%d\t%d\t%+d\n", aggA.Tasks, aggB.Tasks, aggB.Tasks-aggA.Tasks)
+		_, _ = fmt.Fprintf(tw, "Stage Time:\t%s\t%s\t%s\n", aggA.Duration.Truncate(time.Millisecond), aggB.Duration.Truncate(time.Millisecond), fmtDelta(aggB.Duration-aggA.Duration))
+		_, _ = fmt.Fprintf(tw, "Input:\t%s\t%s\t%s\n", util.FormatBytes(aggA.InputBytes), util.FormatBytes(aggB.InputBytes), fmtDeltaBytes(aggB.InputBytes-aggA.InputBytes))
+		_, _ = fmt.Fprintf(tw, "Shuffle Read:\t%s\t%s\t%s\n", util.FormatBytes(aggA.ShuffleRead), util.FormatBytes(aggB.ShuffleRead), fmtDeltaBytes(aggB.ShuffleRead-aggA.ShuffleRead))
+		_, _ = fmt.Fprintf(tw, "Shuffle Write:\t%s\t%s\t%s\n", util.FormatBytes(aggA.ShuffleWrite), util.FormatBytes(aggB.ShuffleWrite), fmtDeltaBytes(aggB.ShuffleWrite-aggA.ShuffleWrite))
+		_, _ = fmt.Fprintf(tw, "Spill (Disk):\t%s\t%s\t%s\n", util.FormatBytes(aggA.SpillDisk), util.FormatBytes(aggB.SpillDisk), fmtDeltaBytes(aggB.SpillDisk-aggA.SpillDisk))
+		_, _ = fmt.Fprintf(tw, "GC Time:\t%s\t%s\t%s\n", fmtMs(aggA.GCTime), fmtMs(aggB.GCTime), fmtDelta(time.Duration(aggB.GCTime-aggA.GCTime)*time.Millisecond))
 
 		return tw.Flush()
 	})

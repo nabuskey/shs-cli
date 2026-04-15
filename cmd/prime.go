@@ -123,7 +123,7 @@ func newPrimeCmd() *cobra.Command {
 		Short: "Print CLI usage reference for AI agents",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Fprint(cmd.OutOrStdout(), primeText)
+			_, _ = fmt.Fprint(cmd.OutOrStdout(), primeText)
 			return nil
 		},
 	}

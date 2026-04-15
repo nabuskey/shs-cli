@@ -135,9 +135,9 @@ func listExecutors(cmd *cobra.Command, c client.ClientWithResponsesInterface, al
 
 	return util.PrintOutput(cmd.OutOrStdout(), execs, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-		fmt.Fprintln(tw, "ID\tACTIVE\tHOST\tTASKS\tFAILED\tTASK_TIME\tGC_TIME\tINPUT\tSHUFFLE_READ\tSHUFFLE_WRITE")
+		_, _ = fmt.Fprintln(tw, "ID\tACTIVE\tHOST\tTASKS\tFAILED\tTASK_TIME\tGC_TIME\tINPUT\tSHUFFLE_READ\tSHUFFLE_WRITE")
 		for _, e := range execs {
-			fmt.Fprintf(tw, "%s\t%v\t%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n",
+			_, _ = fmt.Fprintf(tw, "%s\t%v\t%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n",
 				util.Deref(e.Id),
 				util.Deref(e.IsActive),
 				util.Deref(e.HostPort),
@@ -154,7 +154,7 @@ func listExecutors(cmd *cobra.Command, c client.ClientWithResponsesInterface, al
 			return err
 		}
 		if limit > 0 && total > limit {
-			fmt.Fprintf(w, "\nShowing %d of %d executors. Use --limit 0 to list all.\n", limit, total)
+			_, _ = fmt.Fprintf(w, "\nShowing %d of %d executors. Use --limit 0 to list all.\n", limit, total)
 		}
 		return nil
 	})
@@ -177,23 +177,23 @@ func getExecutor(cmd *cobra.Command, c client.ClientWithResponsesInterface, id s
 
 	return util.PrintOutput(cmd.OutOrStdout(), e, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-		fmt.Fprintf(tw, "Executor ID:\t%s\n", util.Deref(e.Id))
-		fmt.Fprintf(tw, "Active:\t%v\n", util.Deref(e.IsActive))
-		fmt.Fprintf(tw, "Host:\t%s\n", util.Deref(e.HostPort))
-		fmt.Fprintf(tw, "Cores:\t%d\n", util.Deref(e.TotalCores))
-		fmt.Fprintf(tw, "Max Memory:\t%s\n", util.DerefBytes(e.MaxMemory))
-		fmt.Fprintf(tw, "Memory Used:\t%s\n", util.DerefBytes(e.MemoryUsed))
-		fmt.Fprintf(tw, "Disk Used:\t%s\n", util.DerefBytes(e.DiskUsed))
-		fmt.Fprintf(tw, "Tasks:\t%d (active: %d, failed: %d, completed: %d)\n",
+		_, _ = fmt.Fprintf(tw, "Executor ID:\t%s\n", util.Deref(e.Id))
+		_, _ = fmt.Fprintf(tw, "Active:\t%v\n", util.Deref(e.IsActive))
+		_, _ = fmt.Fprintf(tw, "Host:\t%s\n", util.Deref(e.HostPort))
+		_, _ = fmt.Fprintf(tw, "Cores:\t%d\n", util.Deref(e.TotalCores))
+		_, _ = fmt.Fprintf(tw, "Max Memory:\t%s\n", util.DerefBytes(e.MaxMemory))
+		_, _ = fmt.Fprintf(tw, "Memory Used:\t%s\n", util.DerefBytes(e.MemoryUsed))
+		_, _ = fmt.Fprintf(tw, "Disk Used:\t%s\n", util.DerefBytes(e.DiskUsed))
+		_, _ = fmt.Fprintf(tw, "Tasks:\t%d (active: %d, failed: %d, completed: %d)\n",
 			util.Deref(e.TotalTasks), util.Deref(e.ActiveTasks), util.Deref(e.FailedTasks), util.Deref(e.CompletedTasks))
-		fmt.Fprintf(tw, "Task Time:\t%s\n", util.FormatMs(e.TotalDuration))
-		fmt.Fprintf(tw, "GC Time:\t%s\n", util.FormatMs(e.TotalGCTime))
-		fmt.Fprintf(tw, "Input:\t%s\n", util.DerefBytes(e.TotalInputBytes))
-		fmt.Fprintf(tw, "Shuffle Read:\t%s\n", util.DerefBytes(e.TotalShuffleRead))
-		fmt.Fprintf(tw, "Shuffle Write:\t%s\n", util.DerefBytes(e.TotalShuffleWrite))
-		fmt.Fprintf(tw, "RDD Blocks:\t%d\n", util.Deref(e.RddBlocks))
+		_, _ = fmt.Fprintf(tw, "Task Time:\t%s\n", util.FormatMs(e.TotalDuration))
+		_, _ = fmt.Fprintf(tw, "GC Time:\t%s\n", util.FormatMs(e.TotalGCTime))
+		_, _ = fmt.Fprintf(tw, "Input:\t%s\n", util.DerefBytes(e.TotalInputBytes))
+		_, _ = fmt.Fprintf(tw, "Shuffle Read:\t%s\n", util.DerefBytes(e.TotalShuffleRead))
+		_, _ = fmt.Fprintf(tw, "Shuffle Write:\t%s\n", util.DerefBytes(e.TotalShuffleWrite))
+		_, _ = fmt.Fprintf(tw, "RDD Blocks:\t%d\n", util.Deref(e.RddBlocks))
 		if e.RemoveReason != nil {
-			fmt.Fprintf(tw, "Remove Reason:\t%s\n", *e.RemoveReason)
+			_, _ = fmt.Fprintf(tw, "Remove Reason:\t%s\n", *e.RemoveReason)
 		}
 		return tw.Flush()
 	})
@@ -235,7 +235,7 @@ func listExecutorsSummary(cmd *cobra.Command, c client.ClientWithResponsesInterf
 
 	return util.PrintOutput(cmd.OutOrStdout(), execs, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-		fmt.Fprintln(tw, "ID\tACTIVE\tADDED\tREMOVED\tTASKS\tPEAK_RSS\tPEAK_HEAP\tPEAK_DIRECT\tPEAK_OFFHEAP\tGC_TIME\tREMOVE_REASON")
+		_, _ = fmt.Fprintln(tw, "ID\tACTIVE\tADDED\tREMOVED\tTASKS\tPEAK_RSS\tPEAK_HEAP\tPEAK_DIRECT\tPEAK_OFFHEAP\tGC_TIME\tREMOVE_REASON")
 		for _, e := range execs {
 			reason := ""
 			if e.RemoveReason != nil {
@@ -244,7 +244,7 @@ func listExecutorsSummary(cmd *cobra.Command, c client.ClientWithResponsesInterf
 					reason = reason[:i]
 				}
 			}
-			fmt.Fprintf(tw, "%s\t%v\t%s\t%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			_, _ = fmt.Fprintf(tw, "%s\t%v\t%s\t%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n",
 				util.Deref(e.Id),
 				util.Deref(e.IsActive),
 				formatSparkTimeShort(e.AddTime),
@@ -262,7 +262,7 @@ func listExecutorsSummary(cmd *cobra.Command, c client.ClientWithResponsesInterf
 			return err
 		}
 		if limit > 0 && total > limit {
-			fmt.Fprintf(w, "\nShowing %d of %d executors. Use --limit 0 to list all.\n", limit, total)
+			_, _ = fmt.Fprintf(w, "\nShowing %d of %d executors. Use --limit 0 to list all.\n", limit, total)
 		}
 		return nil
 	})
@@ -319,9 +319,9 @@ func listExecutorsTimeline(cmd *cobra.Command, c client.ClientWithResponsesInter
 
 	return util.PrintOutput(cmd.OutOrStdout(), grouped, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
-		fmt.Fprintln(tw, "TIME\tEVENT\tEXECUTORS\tCOUNT")
+		_, _ = fmt.Fprintln(tw, "TIME\tEVENT\tEXECUTORS\tCOUNT")
 		for _, g := range grouped {
-			fmt.Fprintf(tw, "%s\t%s\t%s\t%d\n",
+			_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%d\n",
 				g.Time.Format("15:04"),
 				g.Kind,
 				formatIDRange(g.IDs),
