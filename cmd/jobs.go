@@ -6,7 +6,6 @@ import (
 	"io"
 	"slices"
 	"strconv"
-	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -61,15 +60,7 @@ var statusPriority = map[string]int{
 }
 
 func jobDuration(j client.Job) time.Duration {
-	if j.SubmissionTime == nil || j.CompletionTime == nil {
-		return 0
-	}
-	start, err1 := util.ParseSparkTime(*j.SubmissionTime)
-	end, err2 := util.ParseSparkTime(*j.CompletionTime)
-	if err1 != nil || err2 != nil {
-		return 0
-	}
-	return end.Sub(start)
+	return util.SparkDuration(j.SubmissionTime, j.CompletionTime)
 }
 
 func sortJobs(jobs []client.Job, sortBy string) {
@@ -103,11 +94,12 @@ func listJobs(cmd *cobra.Command, c client.ClientWithResponsesInterface, params 
 	if err != nil {
 		return err
 	}
-	if resp.JSON200 == nil {
-		return fmt.Errorf("unexpected status: %s", resp.HTTPResponse.Status)
+	body, err := util.CheckResponse(resp.JSON200, resp.HTTPResponse.Status)
+	if err != nil {
+		return err
 	}
 
-	jobs := *resp.JSON200
+	jobs := *body
 
 	if group != "" {
 		filtered := jobs[:0]
@@ -121,9 +113,7 @@ func listJobs(cmd *cobra.Command, c client.ClientWithResponsesInterface, params 
 
 	sortJobs(jobs, sortBy)
 
-	if limit > 0 && len(jobs) > limit {
-		jobs = jobs[:limit]
-	}
+	jobs, total := util.ApplyLimit(jobs, limit)
 
 	return util.PrintOutput(cmd.OutOrStdout(), jobs, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
@@ -133,14 +123,7 @@ func listJobs(cmd *cobra.Command, c client.ClientWithResponsesInterface, params 
 			if desc == "" {
 				desc = util.Deref(j.Name)
 			}
-			stages := ""
-			if j.StageIds != nil {
-				ids := make([]string, len(*j.StageIds))
-				for i, id := range *j.StageIds {
-					ids[i] = strconv.Itoa(id)
-				}
-				stages = strings.Join(ids, ",")
-			}
+			stages := util.FormatIntSlice(j.StageIds)
 			_, _ = fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%d\t%d\t%s\n",
 				util.Deref(j.JobId),
 				util.Deref(j.Status),
@@ -154,9 +137,7 @@ func listJobs(cmd *cobra.Command, c client.ClientWithResponsesInterface, params 
 		if err := tw.Flush(); err != nil {
 			return err
 		}
-		if limit > 0 && len(*resp.JSON200) > limit {
-			_, _ = fmt.Fprintf(w, "\nShowing %d of %d jobs. Use --limit 0 to list all.\n", limit, len(*resp.JSON200))
-		}
+		util.PrintLimitFooter(w, limit, total, "jobs")
 		return nil
 	})
 }
@@ -166,24 +147,17 @@ func getJob(cmd *cobra.Command, c client.ClientWithResponsesInterface, jobId int
 	if err != nil {
 		return err
 	}
-	if resp.JSON200 == nil {
-		return fmt.Errorf("unexpected status: %s", resp.HTTPResponse.Status)
+	j, err := util.CheckResponse(resp.JSON200, resp.HTTPResponse.Status)
+	if err != nil {
+		return err
 	}
 
-	j := resp.JSON200
 	return util.PrintOutput(cmd.OutOrStdout(), j, outputFmt, func(w io.Writer) error {
 		desc := util.Deref(j.Description)
 		if desc == "" {
 			desc = util.Deref(j.Name)
 		}
-		stages := ""
-		if j.StageIds != nil {
-			ids := make([]string, len(*j.StageIds))
-			for i, id := range *j.StageIds {
-				ids[i] = strconv.Itoa(id)
-			}
-			stages = strings.Join(ids, ",")
-		}
+		stages := util.FormatIntSlice(j.StageIds)
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 		_, _ = fmt.Fprintf(tw, "Job ID:\t%d\n", util.Deref(j.JobId))
 		_, _ = fmt.Fprintf(tw, "Status:\t%s\n", util.Deref(j.Status))

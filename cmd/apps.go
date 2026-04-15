@@ -94,11 +94,12 @@ func listApps(cmd *cobra.Command, c client.ClientWithResponsesInterface, params 
 	if err != nil {
 		return err
 	}
-	if resp.JSON200 == nil {
-		return fmt.Errorf("unexpected status: %s", resp.HTTPResponse.Status)
+	body, err := util.CheckResponse(resp.JSON200, resp.HTTPResponse.Status)
+	if err != nil {
+		return err
 	}
 
-	apps := *resp.JSON200
+	apps := *body
 
 	if sortBy != "" {
 		sortApps(apps, sortBy, desc)
@@ -124,9 +125,7 @@ func listApps(cmd *cobra.Command, c client.ClientWithResponsesInterface, params 
 		if err := tw.Flush(); err != nil {
 			return err
 		}
-		if limit > 0 && len(apps) >= limit {
-			_, _ = fmt.Fprintf(w, "\nShowing %d applications. Use --limit 0 to list all.\n", limit)
-		}
+		util.PrintLimitFooter(w, limit, len(apps), "applications")
 		return nil
 	})
 }

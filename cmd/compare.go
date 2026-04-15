@@ -46,17 +46,6 @@ func newCompareCmd() *cobra.Command {
 	return cmd
 }
 
-type stageAggregation struct {
-	Count        int
-	Tasks        int
-	Duration     time.Duration
-	InputBytes   int64
-	ShuffleRead  int64
-	ShuffleWrite int64
-	SpillDisk    int64
-	GCTime       int64
-}
-
 type side struct {
 	App          string `json:"app"`
 	SQLID        int    `json:"sqlId"`
@@ -72,27 +61,6 @@ type side struct {
 	ShuffleWrite int64  `json:"shuffleWrite"`
 	SpillDisk    int64  `json:"spillDisk"`
 	GCTimeMs     int64  `json:"gcTimeMs"`
-}
-
-func aggStages(stages []client.StageData, jobStageIDs map[int]bool) stageAggregation {
-	var a stageAggregation
-	seen := map[int]bool{}
-	for _, s := range stages {
-		sid := util.Deref(s.StageId)
-		if !jobStageIDs[sid] || seen[sid] {
-			continue
-		}
-		seen[sid] = true
-		a.Count++
-		a.Tasks += util.Deref(s.NumTasks)
-		a.Duration += stageDuration(s)
-		a.InputBytes += util.Deref(s.InputBytes)
-		a.ShuffleRead += util.Deref(s.ShuffleReadBytes)
-		a.ShuffleWrite += util.Deref(s.ShuffleWriteBytes)
-		a.SpillDisk += util.Deref(s.DiskBytesSpilled)
-		a.GCTime += util.Deref(s.JvmGcTime)
-	}
-	return a
 }
 
 func fetchSQLAndJobs(ctx context.Context, c client.ClientWithResponsesInterface, app string, sqlID int) (*client.SQLExecution, []client.Job, error) {
@@ -129,18 +97,6 @@ func fetchSQLAndJobs(ctx context.Context, c client.ClientWithResponsesInterface,
 		}
 	}
 	return sql, jobs, nil
-}
-
-func stageIDsFromJobs(jobs []client.Job) map[int]bool {
-	m := map[int]bool{}
-	for _, j := range jobs {
-		if j.StageIds != nil {
-			for _, id := range *j.StageIds {
-				m[id] = true
-			}
-		}
-	}
-	return m
 }
 
 func getClients(serverA, serverB string) (client.ClientWithResponsesInterface, client.ClientWithResponsesInterface, error) {
@@ -222,7 +178,7 @@ func runCompare(cmd *cobra.Command, serverA, appA string, idA int, serverB, appB
 		_, _ = fmt.Fprintf(tw, "Shuffle Read:\t%s\t%s\t%s\n", util.FormatBytes(aggA.ShuffleRead), util.FormatBytes(aggB.ShuffleRead), fmtDeltaBytes(aggB.ShuffleRead-aggA.ShuffleRead))
 		_, _ = fmt.Fprintf(tw, "Shuffle Write:\t%s\t%s\t%s\n", util.FormatBytes(aggA.ShuffleWrite), util.FormatBytes(aggB.ShuffleWrite), fmtDeltaBytes(aggB.ShuffleWrite-aggA.ShuffleWrite))
 		_, _ = fmt.Fprintf(tw, "Spill (Disk):\t%s\t%s\t%s\n", util.FormatBytes(aggA.SpillDisk), util.FormatBytes(aggB.SpillDisk), fmtDeltaBytes(aggB.SpillDisk-aggA.SpillDisk))
-		_, _ = fmt.Fprintf(tw, "GC Time:\t%s\t%s\t%s\n", fmtMs(aggA.GCTime), fmtMs(aggB.GCTime), fmtDelta(time.Duration(aggB.GCTime-aggA.GCTime)*time.Millisecond))
+		_, _ = fmt.Fprintf(tw, "GC Time:\t%s\t%s\t%s\n", util.FormatMsVal(aggA.GCTime), util.FormatMsVal(aggB.GCTime), fmtDelta(time.Duration(aggB.GCTime-aggA.GCTime)*time.Millisecond))
 
 		return tw.Flush()
 	})
@@ -240,8 +196,4 @@ func fmtDeltaBytes(b int64) string {
 		return "+" + util.FormatBytes(b)
 	}
 	return "-" + util.FormatBytes(-b)
-}
-
-func fmtMs(ms int64) string {
-	return (time.Duration(ms) * time.Millisecond).Truncate(time.Millisecond).String()
 }

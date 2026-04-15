@@ -35,11 +35,11 @@ func getEnvironment(cmd *cobra.Command, c client.ClientWithResponsesInterface, s
 	if err != nil {
 		return err
 	}
-	if resp.JSON200 == nil {
-		return fmt.Errorf("unexpected status: %s", resp.HTTPResponse.Status)
+	env, err := util.CheckResponse(resp.JSON200, resp.HTTPResponse.Status)
+	if err != nil {
+		return err
 	}
 
-	env := resp.JSON200
 	return util.PrintOutput(cmd.OutOrStdout(), env, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 

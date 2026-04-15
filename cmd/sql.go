@@ -89,17 +89,6 @@ func sortSQLExecutions(execs []client.SQLExecution, sortBy string) {
 	})
 }
 
-func formatJobIds(ids *[]int) string {
-	if ids == nil || len(*ids) == 0 {
-		return ""
-	}
-	s := make([]string, len(*ids))
-	for i, id := range *ids {
-		s[i] = strconv.Itoa(id)
-	}
-	return strings.Join(s, ",")
-}
-
 func listSQLExecutions(cmd *cobra.Command, c client.ClientWithResponsesInterface, status string, limit int, sortBy string) error {
 	details := false
 	allResults := math.MaxInt32
@@ -108,11 +97,12 @@ func listSQLExecutions(cmd *cobra.Command, c client.ClientWithResponsesInterface
 	if err != nil {
 		return err
 	}
-	if resp.JSON200 == nil {
-		return fmt.Errorf("unexpected status: %s", resp.HTTPResponse.Status)
+	body, err := util.CheckResponse(resp.JSON200, resp.HTTPResponse.Status)
+	if err != nil {
+		return err
 	}
 
-	execs := *resp.JSON200
+	execs := *body
 	if status != "" {
 		upper := strings.ToUpper(status)
 		execs = slices.DeleteFunc(execs, func(e client.SQLExecution) bool {
@@ -122,10 +112,7 @@ func listSQLExecutions(cmd *cobra.Command, c client.ClientWithResponsesInterface
 
 	sortSQLExecutions(execs, sortBy)
 
-	total := len(execs)
-	if limit > 0 && len(execs) > limit {
-		execs = execs[:limit]
-	}
+	execs, total := util.ApplyLimit(execs, limit)
 
 	return util.PrintOutput(cmd.OutOrStdout(), execs, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
@@ -140,17 +127,15 @@ func listSQLExecutions(cmd *cobra.Command, c client.ClientWithResponsesInterface
 				util.Deref(e.Status),
 				desc,
 				sqlDuration(e).Truncate(time.Millisecond),
-				formatJobIds(e.FailedJobIds),
-				formatJobIds(e.SuccessJobIds),
-				formatJobIds(e.RunningJobIds),
+				util.FormatIntSlice(e.FailedJobIds),
+				util.FormatIntSlice(e.SuccessJobIds),
+				util.FormatIntSlice(e.RunningJobIds),
 			)
 		}
 		if err := tw.Flush(); err != nil {
 			return err
 		}
-		if limit > 0 && total > limit {
-			_, _ = fmt.Fprintf(w, "\nShowing %d of %d executions. Use --limit 0 to list all.\n", limit, total)
-		}
+		util.PrintLimitFooter(w, limit, total, "executions")
 		return nil
 	})
 }
@@ -222,15 +207,16 @@ func fetchSQLJobs(ctx context.Context, c client.ClientWithResponsesInterface, id
 	if err != nil {
 		return nil, err
 	}
-	if resp.JSON200 == nil {
-		return nil, fmt.Errorf("unexpected status: %s", resp.HTTPResponse.Status)
+	body, err := util.CheckResponse(resp.JSON200, resp.HTTPResponse.Status)
+	if err != nil {
+		return nil, err
 	}
 	want := make(map[int]bool, len(ids))
 	for _, id := range ids {
 		want[id] = true
 	}
 	var matched []client.Job
-	for _, j := range *resp.JSON200 {
+	for _, j := range *body {
 		if want[util.Deref(j.JobId)] {
 			matched = append(matched, j)
 		}
@@ -243,14 +229,7 @@ func formatSQLJobs(w io.Writer, jobs []client.Job) {
 	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 	_, _ = fmt.Fprintln(tw, "ID\tSTATUS\tDURATION\tTASKS\tFAILED\tSTAGES")
 	for _, j := range jobs {
-		stages := ""
-		if j.StageIds != nil {
-			s := make([]string, len(*j.StageIds))
-			for i, id := range *j.StageIds {
-				s[i] = strconv.Itoa(id)
-			}
-			stages = strings.Join(s, ",")
-		}
+		stages := util.FormatIntSlice(j.StageIds)
 		_, _ = fmt.Fprintf(tw, "%d\t%s\t%s\t%d\t%d\t%s\n",
 			util.Deref(j.JobId),
 			util.Deref(j.Status),
@@ -269,11 +248,10 @@ func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, 
 	if err != nil {
 		return err
 	}
-	if resp.JSON200 == nil {
-		return fmt.Errorf("unexpected status: %s", resp.HTTPResponse.Status)
+	e, err := util.CheckResponse(resp.JSON200, resp.HTTPResponse.Status)
+	if err != nil {
+		return err
 	}
-
-	e := resp.JSON200
 
 	var jobs []client.Job
 	var stages *stageAggregation
@@ -302,9 +280,9 @@ func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, 
 		_, _ = fmt.Fprintf(tw, "Description:\t%s\n", util.Deref(e.Description))
 		_, _ = fmt.Fprintf(tw, "Submitted:\t%s\n", util.Deref(e.SubmissionTime))
 		_, _ = fmt.Fprintf(tw, "Duration:\t%s\n", sqlDuration(*e).Truncate(time.Millisecond))
-		_, _ = fmt.Fprintf(tw, "Success Jobs:\t%s\n", formatJobIds(e.SuccessJobIds))
-		_, _ = fmt.Fprintf(tw, "Failed Jobs:\t%s\n", formatJobIds(e.FailedJobIds))
-		_, _ = fmt.Fprintf(tw, "Running Jobs:\t%s\n", formatJobIds(e.RunningJobIds))
+		_, _ = fmt.Fprintf(tw, "Success Jobs:\t%s\n", util.FormatIntSlice(e.SuccessJobIds))
+		_, _ = fmt.Fprintf(tw, "Failed Jobs:\t%s\n", util.FormatIntSlice(e.FailedJobIds))
+		_, _ = fmt.Fprintf(tw, "Running Jobs:\t%s\n", util.FormatIntSlice(e.RunningJobIds))
 		if e.PlanDescription != nil && *e.PlanDescription != "" {
 			_, _ = fmt.Fprintf(tw, "\nPlan:\n")
 			_ = tw.Flush()
@@ -330,7 +308,7 @@ func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, 
 			_, _ = fmt.Fprintf(w, "  Shuffle Read:  %s\n", util.FormatBytes(stages.ShuffleRead))
 			_, _ = fmt.Fprintf(w, "  Shuffle Write: %s\n", util.FormatBytes(stages.ShuffleWrite))
 			_, _ = fmt.Fprintf(w, "  Spill (Disk):  %s\n", util.FormatBytes(stages.SpillDisk))
-			_, _ = fmt.Fprintf(w, "  GC Time:       %s\n", fmtMs(stages.GCTime))
+			_, _ = fmt.Fprintf(w, "  GC Time:       %s\n", util.FormatMsVal(stages.GCTime))
 		}
 		return tw.Flush()
 	})

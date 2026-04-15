@@ -105,19 +105,21 @@ func fetchExecutors(ctx context.Context, c client.ClientWithResponsesInterface, 
 		if err != nil {
 			return nil, err
 		}
-		if resp.JSON200 == nil {
-			return nil, fmt.Errorf("unexpected status: %s", resp.HTTPResponse.Status)
+		body, err := util.CheckResponse(resp.JSON200, resp.HTTPResponse.Status)
+		if err != nil {
+			return nil, err
 		}
-		return *resp.JSON200, nil
+		return *body, nil
 	}
 	resp, err := c.ListActiveExecutorsWithResponse(ctx, appID)
 	if err != nil {
 		return nil, err
 	}
-	if resp.JSON200 == nil {
-		return nil, fmt.Errorf("unexpected status: %s", resp.HTTPResponse.Status)
+	body, err := util.CheckResponse(resp.JSON200, resp.HTTPResponse.Status)
+	if err != nil {
+		return nil, err
 	}
-	return util.Deref(resp.JSON200), nil
+	return util.Deref(body), nil
 }
 
 func listExecutors(cmd *cobra.Command, c client.ClientWithResponsesInterface, all bool, limit int, sortBy string) error {
@@ -128,10 +130,7 @@ func listExecutors(cmd *cobra.Command, c client.ClientWithResponsesInterface, al
 
 	sortExecutors(execs, sortBy)
 
-	total := len(execs)
-	if limit > 0 && len(execs) > limit {
-		execs = execs[:limit]
-	}
+	execs, total := util.ApplyLimit(execs, limit)
 
 	return util.PrintOutput(cmd.OutOrStdout(), execs, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
@@ -153,9 +152,7 @@ func listExecutors(cmd *cobra.Command, c client.ClientWithResponsesInterface, al
 		if err := tw.Flush(); err != nil {
 			return err
 		}
-		if limit > 0 && total > limit {
-			_, _ = fmt.Fprintf(w, "\nShowing %d of %d executors. Use --limit 0 to list all.\n", limit, total)
-		}
+		util.PrintLimitFooter(w, limit, total, "executors")
 		return nil
 	})
 }
@@ -228,10 +225,7 @@ func listExecutorsSummary(cmd *cobra.Command, c client.ClientWithResponsesInterf
 	}
 	sortExecutors(execs, sortBy)
 
-	total := len(execs)
-	if limit > 0 && len(execs) > limit {
-		execs = execs[:limit]
-	}
+	execs, total := util.ApplyLimit(execs, limit)
 
 	return util.PrintOutput(cmd.OutOrStdout(), execs, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
@@ -261,9 +255,7 @@ func listExecutorsSummary(cmd *cobra.Command, c client.ClientWithResponsesInterf
 		if err := tw.Flush(); err != nil {
 			return err
 		}
-		if limit > 0 && total > limit {
-			_, _ = fmt.Fprintf(w, "\nShowing %d of %d executors. Use --limit 0 to list all.\n", limit, total)
-		}
+		util.PrintLimitFooter(w, limit, total, "executors")
 		return nil
 	})
 }

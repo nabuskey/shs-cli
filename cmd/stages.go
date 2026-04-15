@@ -65,15 +65,7 @@ var stageStatusPriority = map[string]int{
 }
 
 func stageDuration(s client.StageData) time.Duration {
-	if s.SubmissionTime == nil || s.CompletionTime == nil {
-		return 0
-	}
-	start, err1 := util.ParseSparkTime(*s.SubmissionTime)
-	end, err2 := util.ParseSparkTime(*s.CompletionTime)
-	if err1 != nil || err2 != nil {
-		return 0
-	}
-	return end.Sub(start)
+	return util.SparkDuration(s.SubmissionTime, s.CompletionTime)
 }
 
 func sortStages(stages []client.StageData, sortBy string) {
@@ -114,17 +106,15 @@ func listStages(cmd *cobra.Command, c client.ClientWithResponsesInterface, param
 	if err != nil {
 		return err
 	}
-	if resp.JSON200 == nil {
-		return fmt.Errorf("unexpected status: %s", resp.HTTPResponse.Status)
+	body, err := util.CheckResponse(resp.JSON200, resp.HTTPResponse.Status)
+	if err != nil {
+		return err
 	}
 
-	stages := *resp.JSON200
+	stages := *body
 	sortStages(stages, sortBy)
 
-	total := len(stages)
-	if limit > 0 && len(stages) > limit {
-		stages = stages[:limit]
-	}
+	stages, total := util.ApplyLimit(stages, limit)
 
 	return util.PrintOutput(cmd.OutOrStdout(), stages, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
@@ -146,9 +136,7 @@ func listStages(cmd *cobra.Command, c client.ClientWithResponsesInterface, param
 		if err := tw.Flush(); err != nil {
 			return err
 		}
-		if limit > 0 && total > limit {
-			_, _ = fmt.Fprintf(w, "\nShowing %d of %d stages. Use --limit 0 to list all.\n", limit, total)
-		}
+		util.PrintLimitFooter(w, limit, total, "stages")
 		return nil
 	})
 }
@@ -159,11 +147,12 @@ func getStage(cmd *cobra.Command, c client.ClientWithResponsesInterface, stageId
 	if err != nil {
 		return err
 	}
-	if resp.JSON200 == nil {
-		return fmt.Errorf("unexpected status: %s", resp.HTTPResponse.Status)
+	body, err := util.CheckResponse(resp.JSON200, resp.HTTPResponse.Status)
+	if err != nil {
+		return err
 	}
 
-	attempts := *resp.JSON200
+	attempts := *body
 	if len(attempts) == 0 {
 		return fmt.Errorf("no attempts found for stage %d", stageId)
 	}
@@ -203,10 +192,11 @@ func getStageErrors(cmd *cobra.Command, c client.ClientWithResponsesInterface, s
 	if err != nil {
 		return err
 	}
-	if resp.JSON200 == nil {
-		return fmt.Errorf("unexpected status: %s", resp.HTTPResponse.Status)
+	body, err := util.CheckResponse(resp.JSON200, resp.HTTPResponse.Status)
+	if err != nil {
+		return err
 	}
-	attempts := *resp.JSON200
+	attempts := *body
 	if len(attempts) == 0 {
 		return fmt.Errorf("no attempts found for stage %d", stageId)
 	}
@@ -219,11 +209,12 @@ func getStageErrors(cmd *cobra.Command, c client.ClientWithResponsesInterface, s
 	if err != nil {
 		return err
 	}
-	if taskResp.JSON200 == nil {
-		return fmt.Errorf("unexpected status: %s", taskResp.HTTPResponse.Status)
+	taskBody, err := util.CheckResponse(taskResp.JSON200, taskResp.HTTPResponse.Status)
+	if err != nil {
+		return err
 	}
 
-	tasks := *taskResp.JSON200
+	tasks := *taskBody
 	return util.PrintOutput(cmd.OutOrStdout(), tasks, outputFmt, func(w io.Writer) error {
 		if len(tasks) == 0 {
 			_, _ = fmt.Fprintln(w, "No failed tasks.")
