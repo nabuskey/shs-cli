@@ -25,9 +25,10 @@ func newSQLCmd() *cobra.Command {
 	var showJobs bool
 
 	cmd := &cobra.Command{
-		Use:   "sql [executionId]",
-		Short: "List or get SQL executions for an application",
-		Args:  cobra.MaximumNArgs(1),
+		Use:     "sql [executionId]",
+		Short:   "List or get SQL executions for an application",
+		PreRunE: requireAppID,
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, err := newClient()
 			if err != nil {

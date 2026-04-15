@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+//nolint:unused
 func newStorageCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "storage",

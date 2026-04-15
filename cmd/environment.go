@@ -16,6 +16,7 @@ func newEnvironmentCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "environment",
 		Short:   "Get environment info for an application",
+		PreRunE: requireAppID,
 		Aliases: []string{"env"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, err := newClient()

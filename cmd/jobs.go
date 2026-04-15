@@ -21,9 +21,10 @@ func newJobsCmd() *cobra.Command {
 	var sortBy string
 
 	cmd := &cobra.Command{
-		Use:   "jobs [jobId]",
-		Short: "List or get jobs for an application",
-		Args:  cobra.MaximumNArgs(1),
+		Use:     "jobs [jobId]",
+		Short:   "List or get jobs for an application",
+		PreRunE: requireAppID,
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, err := newClient()
 			if err != nil {

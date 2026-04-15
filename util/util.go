@@ -68,7 +68,7 @@ func ApplyLimit[T any](items []T, limit int) ([]T, int) {
 // PrintLimitFooter prints a truncation notice if the result set was limited.
 func PrintLimitFooter(w io.Writer, limit, total int, noun string) {
 	if limit > 0 && total > limit {
-		fmt.Fprintf(w, "\nShowing %d of %d %s. Use --limit 0 to list all.\n", limit, total, noun)
+		_, _ = fmt.Fprintf(w, "\nShowing %d of %d %s. Use --limit 0 to list all.\n", limit, total, noun)
 	}
 }
 

@@ -22,9 +22,10 @@ func newStagesCmd() *cobra.Command {
 	var errors bool
 
 	cmd := &cobra.Command{
-		Use:   "stages [stageId]",
-		Short: "List or get stages for an application",
-		Args:  cobra.MaximumNArgs(1),
+		Use:     "stages [stageId]",
+		Short:   "List or get stages for an application",
+		PreRunE: requireAppID,
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, err := newClient()
 			if err != nil {

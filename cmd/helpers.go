@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/kubeflow/mcp-apache-spark-history-server/client"
 	"github.com/kubeflow/mcp-apache-spark-history-server/util"
+	"github.com/spf13/cobra"
 )
 
 type stageAggregation struct {
@@ -49,4 +51,18 @@ func stageIDsFromJobs(jobs []client.Job) map[int]bool {
 		}
 	}
 	return m
+}
+
+func requireAppID(cmd *cobra.Command, args []string) error {
+	if appID == "" {
+		return fmt.Errorf("required flag \"app-id\" not set")
+	}
+	return nil
+}
+
+func newClient(opts ...util.Option) (client.ClientWithResponsesInterface, error) {
+	if len(opts) == 0 {
+		opts = []util.Option{util.WithTimeout(timeout), util.WithServer(serverName)}
+	}
+	return util.NewSHSClient(configPath, opts...)
 }

@@ -36,9 +36,10 @@ func newExecutorsCmd() *cobra.Command {
 	var limit int
 
 	cmd := &cobra.Command{
-		Use:   "executors [executorId]",
-		Short: "List or get executors for an application",
-		Args:  cobra.MaximumNArgs(1),
+		Use:     "executors [executorId]",
+		Short:   "List or get executors for an application",
+		PreRunE: requireAppID,
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, err := newClient()
 			if err != nil {
