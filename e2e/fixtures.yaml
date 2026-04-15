@@ -6,9 +6,9 @@ app2:
   name: shs-e2e-app2
 
 apps: |
-  ID                   NAME          ATTEMPTS
-  local-1776286804625  shs-e2e-app2  1
-  local-1776286786993  shs-e2e-app1  1
+  ID                   NAME          DURATION  ATTEMPTS
+  local-1776286804625  shs-e2e-app2  13.159s   1
+  local-1776286786993  shs-e2e-app1  14.47s    1
 
 jobs_app1: |
   ID  STATUS     DESCRIPTION                                                        DURATION  TASKS  FAILED_TASKS  STAGES
@@ -239,3 +239,10 @@ sql6_summary_app2: |
 # To update: shs sql -a APP 6 --initial-plan | sha256sum
 sql6_plan_sha256_app1: "5e974bc43353b93932fb75a7f1b8c0805c53af403be6cabe43085f22c6c1ba19"
 sql6_plan_sha256_app2: "cea73570506d19c176adff6f9bebba0ab1d689afd24330d4f1f42a3930ebb486"
+
+apps_all_servers: |
+  SERVER     ID                   NAME          DURATION  ATTEMPTS
+  default    local-1776286804625  shs-e2e-app2  13.159s   1
+  default    local-1776286786993  shs-e2e-app1  14.47s    1
+  secondary  local-1776286804625  shs-e2e-app2  13.159s   1
+  secondary  local-1776286786993  shs-e2e-app1  14.47s    1

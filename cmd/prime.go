@@ -18,8 +18,9 @@ COMMANDS
   shs executors -a APP_ID         List active executors
   shs executors -a APP_ID EXEC    Get executor detail
   shs sql -a APP_ID               List SQL executions
-  shs sql -a APP_ID EXEC_ID       Get SQL execution detail
+  shs sql -a APP_ID EXEC_ID       Get SQL execution header (status, duration, job IDs)
   shs sql -a APP_ID EXEC_ID --plan          Include query plan and node metrics
+  shs sql -a APP_ID EXEC_ID --summary       Include job summaries + aggregate stage metrics
   shs sql -a APP_ID EXEC_ID --initial-plan  Include initial AQE plans (implies --plan)
   shs env -a APP_ID               Show environment/config
   shs compare --app-a APP1 --app-b APP2 EXEC1 EXEC2  Compare SQL executions across apps
@@ -44,7 +45,7 @@ COMMAND DETAILS
   jobs       --status running|succeeded|failed|unknown  --sort failed-tasks|duration|id  --group GROUP
   stages     --status active|complete|pending|failed  --sort failed-tasks|duration|id  --errors
   executors  --all (include dead)  --summary (peak memory/OOM view)  --sort failed-tasks|duration|gc|id
-  sql        --status completed|running|failed  --sort duration|id  --summary  --initial-plan
+  sql        --status completed|running|failed  --sort duration|id  --plan  --summary  --initial-plan
 
 DEFAULT SORT
   jobs:       failed first, then by duration descending
@@ -82,7 +83,8 @@ COMMON WORKFLOWS
 
   Investigate slow SQL queries:
     shs sql -a APP_ID --sort duration --limit 10
-    shs sql -a APP_ID EXEC_ID          # plan + node-level metrics (rows, shuffle, time)
+    shs sql -a APP_ID EXEC_ID          # header: status, duration, job IDs
+    shs sql -a APP_ID EXEC_ID --plan     # physical plan + node-level metrics
     shs sql -a APP_ID EXEC_ID --summary   # jobs + aggregate shuffle/input/spill/GC metrics
 
   Compare same query across two runs:
@@ -102,16 +104,17 @@ DATA MODEL
   Executor     A JVM process running tasks. Has cores, memory, shuffle/IO stats.
                Detail view shows: memory usage, disk, task breakdown, RDD blocks.
   SQL          A SQL/DataFrame execution. Links to jobs via job IDs.
-               Detail view includes the physical plan (final only by default),
-               node-level metrics (row counts, shuffle bytes, time per operator),
-               and optionally inlined job summaries (--summary).
+               Detail view shows the execution header by default.
+               Use --plan for the physical plan and node-level metrics,
+               --summary for inlined job summaries and aggregate stage metrics.
 
 TIPS
   - Stage IDs appear in job output for cross-referencing.
   - Stage detail shows the latest attempt by default.
   - Duration is computed from submissionTime/completionTime.
   - Use -o json when you need to extract specific fields.
-  - SQL detail strips AQE initial plans by default; use --initial-plan to include them.
+  - SQL detail shows only the header by default; use --plan for the physical plan.
+  - --initial-plan includes AQE initial plans (implies --plan).
   - SQL job IDs cross-reference with shs jobs output; use --summary to inline them.
   - Executor TASK_TIME is cumulative task execution time, not wall-clock uptime.
   - All timestamps are UTC.

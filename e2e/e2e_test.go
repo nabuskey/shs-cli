@@ -38,6 +38,7 @@ type fixtures struct {
 	SQL6SumApp2    string  `yaml:"sql6_summary_app2"`
 	SQL6PlanApp1   string  `yaml:"sql6_plan_sha256_app1"`
 	SQL6PlanApp2   string  `yaml:"sql6_plan_sha256_app2"`
+	AppsAllServers string  `yaml:"apps_all_servers"`
 }
 
 var fix fixtures
@@ -68,6 +69,12 @@ func TestApps(t *testing.T) {
 	if diff := cmp.Diff(fix.Apps, got); diff != "" {
 		t.Errorf("mismatch (-want +got):\n%s", diff)
 	}
+	t.Run("all_servers", func(t *testing.T) {
+		got := shs(t, "apps", "--all-servers", "--sort", "server")
+		if diff := cmp.Diff(fix.AppsAllServers, got); diff != "" {
+			t.Errorf("mismatch (-want +got):\n%s", diff)
+		}
+	})
 }
 
 func TestJobs(t *testing.T) {
