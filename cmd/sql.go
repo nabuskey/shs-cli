@@ -22,7 +22,8 @@ func newSQLCmd() *cobra.Command {
 	var limit int
 	var sortBy string
 	var showInitialPlan bool
-	var showJobs bool
+	var showPlan bool
+	var showSummary bool
 
 	cmd := &cobra.Command{
 		Use:     "sql [executionId]",
@@ -39,10 +40,13 @@ func newSQLCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("invalid execution ID: %s", args[0])
 				}
-				return getSQLExecution(cmd, c, id, showInitialPlan, showJobs)
+				if showInitialPlan {
+					showPlan = true
+				}
+				return getSQLExecution(cmd, c, id, showPlan, showInitialPlan, showSummary)
 			}
-			if showJobs || showInitialPlan {
-				return fmt.Errorf("--jobs and --initial-plan require an execution ID")
+			if showSummary || showInitialPlan {
+				return fmt.Errorf("--summary and --initial-plan require an execution ID")
 			}
 			return listSQLExecutions(cmd, c, status, limit, sortBy)
 		},
@@ -51,9 +55,27 @@ func newSQLCmd() *cobra.Command {
 	cmd.Flags().StringVar(&status, "status", "", "Filter by status (completed|running|failed)")
 	cmd.Flags().IntVar(&limit, "limit", 20, "Max number of executions to return (0 for all)")
 	cmd.Flags().StringVar(&sortBy, "sort", "", "Sort by field (duration|id)")
-	cmd.Flags().BoolVar(&showInitialPlan, "initial-plan", false, "Include initial plans (stripped by default)")
-	cmd.Flags().BoolVar(&showJobs, "jobs", false, "Include job summaries for this SQL execution")
+	cmd.Flags().BoolVar(&showPlan, "plan", false, "Include query plan and node metrics")
+	cmd.Flags().BoolVar(&showInitialPlan, "initial-plan", false, "Include initial plans (implies --plan)")
+	cmd.Flags().BoolVar(&showSummary, "summary", false, "Include job summaries + aggregate stage metrics")
 	return cmd
+}
+
+type sqlSummaryExec struct {
+	ID             *int                          `json:"id,omitempty" yaml:"id,omitempty"`
+	Status         *client.SQLExecutionStatus    `json:"status,omitempty" yaml:"status,omitempty"`
+	Description    *string                       `json:"description,omitempty" yaml:"description,omitempty"`
+	SubmissionTime *string                       `json:"submissionTime,omitempty" yaml:"submissionTime,omitempty"`
+	Duration       *int64                        `json:"duration,omitempty" yaml:"duration,omitempty"`
+	SuccessJobIds  *[]int                        `json:"successJobIds,omitempty" yaml:"successJobIds,omitempty"`
+	FailedJobIds   *[]int                        `json:"failedJobIds,omitempty" yaml:"failedJobIds,omitempty"`
+	RunningJobIds  *[]int                        `json:"runningJobIds,omitempty" yaml:"runningJobIds,omitempty"`
+}
+
+type sqlDetail struct {
+	Execution sqlSummaryExec    `json:"execution" yaml:"execution"`
+	Jobs      []client.Job      `json:"jobs,omitempty" yaml:"jobs,omitempty"`
+	Stages    *stageAggregation `json:"stageMetrics,omitempty" yaml:"stageMetrics,omitempty"`
 }
 
 var sqlStatusPriority = map[string]int{
@@ -243,7 +265,7 @@ func formatSQLJobs(w io.Writer, jobs []client.Job) {
 	_ = tw.Flush()
 }
 
-func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, id int, showInitialPlan bool, showJobs bool) error {
+func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, id int, showPlan bool, showInitialPlan bool, showSummary bool) error {
 	params := &client.GetSQLExecutionParams{}
 	resp, err := c.GetSQLExecutionWithResponse(cmd.Context(), appID, id, params)
 	if err != nil {
@@ -256,7 +278,7 @@ func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, 
 
 	var jobs []client.Job
 	var stages *stageAggregation
-	if showJobs {
+	if showSummary {
 		ids := collectJobIds(e)
 		if len(ids) > 0 {
 			jobs, err = fetchSQLJobs(cmd.Context(), c, ids)
@@ -274,7 +296,21 @@ func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, 
 		}
 	}
 
-	return util.PrintOutput(cmd.OutOrStdout(), e, outputFmt, func(w io.Writer) error {
+	var output any = e
+	if showSummary {
+		output = sqlDetail{
+			Execution: sqlSummaryExec{
+				ID: e.Id, Status: e.Status, Description: e.Description,
+				SubmissionTime: e.SubmissionTime, Duration: e.Duration,
+				SuccessJobIds: e.SuccessJobIds, FailedJobIds: e.FailedJobIds,
+				RunningJobIds: e.RunningJobIds,
+			},
+			Jobs:   jobs,
+			Stages: stages,
+		}
+	}
+
+	return util.PrintOutput(cmd.OutOrStdout(), output, outputFmt, func(w io.Writer) error {
 		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 		_, _ = fmt.Fprintf(tw, "Execution ID:\t%d\n", util.Deref(e.Id))
 		_, _ = fmt.Fprintf(tw, "Status:\t%s\n", util.Deref(e.Status))
@@ -284,7 +320,8 @@ func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, 
 		_, _ = fmt.Fprintf(tw, "Success Jobs:\t%s\n", util.FormatIntSlice(e.SuccessJobIds))
 		_, _ = fmt.Fprintf(tw, "Failed Jobs:\t%s\n", util.FormatIntSlice(e.FailedJobIds))
 		_, _ = fmt.Fprintf(tw, "Running Jobs:\t%s\n", util.FormatIntSlice(e.RunningJobIds))
-		if e.PlanDescription != nil && *e.PlanDescription != "" {
+		_ = tw.Flush()
+		if showPlan && e.PlanDescription != nil && *e.PlanDescription != "" {
 			_, _ = fmt.Fprintf(tw, "\nPlan:\n")
 			_ = tw.Flush()
 			plan := *e.PlanDescription
@@ -293,9 +330,11 @@ func getSQLExecution(cmd *cobra.Command, c client.ClientWithResponsesInterface, 
 			}
 			_, _ = fmt.Fprintln(w, plan)
 		}
-		if metrics := formatNodeMetrics(e.Nodes); metrics != "" {
-			_, _ = fmt.Fprintf(w, "\nMetrics:\n")
-			_, _ = fmt.Fprint(w, metrics)
+		if showPlan {
+			if metrics := formatNodeMetrics(e.Nodes); metrics != "" {
+				_, _ = fmt.Fprintf(w, "\nMetrics:\n")
+				_, _ = fmt.Fprint(w, metrics)
+			}
 		}
 		if len(jobs) > 0 {
 			_, _ = fmt.Fprintf(w, "\nJobs (%d):\n", len(jobs))

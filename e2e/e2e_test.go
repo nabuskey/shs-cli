@@ -1,0 +1,226 @@
+package e2e
+
+import (
+	"crypto/sha256"
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+	"testing"
+
+	"github.com/goccy/go-yaml"
+)
+
+type appInfo struct {
+	ID   string `yaml:"id"`
+	Name string `yaml:"name"`
+}
+
+type fixtures struct {
+	App1           appInfo `yaml:"app1"`
+	App2           appInfo `yaml:"app2"`
+	Apps           string  `yaml:"apps"`
+	JobsApp1       string  `yaml:"jobs_app1"`
+	JobsApp2       string  `yaml:"jobs_app2"`
+	Stage5ErrsApp1 string  `yaml:"stage5_errors_app1"`
+	Stage5ErrsApp2 string  `yaml:"stage5_errors_app2"`
+	SQLApp1        string  `yaml:"sql_app1"`
+	SQLApp2        string  `yaml:"sql_app2"`
+	JobsApp1SortID string  `yaml:"jobs_app1_sort_id"`
+	SQLApp1SortID  string  `yaml:"sql_app1_sort_id"`
+	CompareSQL6    string  `yaml:"compare_sql6"`
+	CompareSQL8    string  `yaml:"compare_sql8"`
+	ExecApp1       string  `yaml:"executors_app1"`
+	ExecApp2       string  `yaml:"executors_app2"`
+	ExecSumApp1    string  `yaml:"executors_summary_app1"`
+	SQL6SumApp1    string  `yaml:"sql6_summary_app1"`
+	SQL6SumApp2    string  `yaml:"sql6_summary_app2"`
+	SQL6PlanApp1   string  `yaml:"sql6_plan_sha256_app1"`
+	SQL6PlanApp2   string  `yaml:"sql6_plan_sha256_app2"`
+}
+
+var fix fixtures
+
+func TestMain(m *testing.M) {
+	data, err := os.ReadFile("fixtures.yaml")
+	if err != nil {
+		panic("failed to read fixtures.yaml: " + err.Error())
+	}
+	if err := yaml.Unmarshal(data, &fix); err != nil {
+		panic("failed to parse fixtures.yaml: " + err.Error())
+	}
+	os.Exit(m.Run())
+}
+
+func shs(t *testing.T, args ...string) string {
+	t.Helper()
+	cmd := exec.Command("../bin/shs", append([]string{"-c", "config.yaml"}, args...)...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("shs %s failed: %v\n%s", strings.Join(args, " "), err, out)
+	}
+	return string(out)
+}
+
+func TestApps(t *testing.T) {
+	got := shs(t, "apps")
+	if got != fix.Apps {
+		t.Errorf("apps output mismatch\nwant:\n%s\ngot:\n%s", fix.Apps, got)
+	}
+}
+
+func TestJobs(t *testing.T) {
+	tests := []struct {
+		name string
+		app  string
+		want string
+	}{
+		{"app1", fix.App1.ID, fix.JobsApp1},
+		{"app2", fix.App2.ID, fix.JobsApp2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shs(t, "jobs", "-a", tt.app, "--limit", "0")
+			if got != tt.want {
+				t.Errorf("jobs output mismatch\nwant:\n%s\ngot:\n%s", tt.want, got)
+			}
+		})
+	}
+}
+
+func TestStageErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		app  string
+		want string
+	}{
+		{"app1", fix.App1.ID, fix.Stage5ErrsApp1},
+		{"app2", fix.App2.ID, fix.Stage5ErrsApp2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shs(t, "stages", "-a", tt.app, "5", "--errors")
+			if got != tt.want {
+				t.Errorf("stage errors output mismatch\nwant:\n%s\ngot:\n%s", tt.want, got)
+			}
+		})
+	}
+}
+
+func TestSQL(t *testing.T) {
+	tests := []struct {
+		name string
+		app  string
+		want string
+	}{
+		{"app1", fix.App1.ID, fix.SQLApp1},
+		{"app2", fix.App2.ID, fix.SQLApp2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shs(t, "sql", "-a", tt.app, "--limit", "0")
+			if got != tt.want {
+				t.Errorf("sql output mismatch\nwant:\n%s\ngot:\n%s", tt.want, got)
+			}
+		})
+	}
+}
+
+func TestSort(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{"jobs_sort_id", []string{"jobs", "-a", fix.App1.ID, "--sort", "id", "--limit", "5"}, fix.JobsApp1SortID},
+		{"sql_sort_id", []string{"sql", "-a", fix.App1.ID, "--sort", "id", "--limit", "5"}, fix.SQLApp1SortID},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shs(t, tt.args...)
+			if got != tt.want {
+				t.Errorf("sort output mismatch\nwant:\n%s\ngot:\n%s", tt.want, got)
+			}
+		})
+	}
+}
+func TestExecutors(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{"app1", []string{"executors", "-a", fix.App1.ID}, fix.ExecApp1},
+		{"app2", []string{"executors", "-a", fix.App2.ID}, fix.ExecApp2},
+		{"summary_app1", []string{"executors", "-a", fix.App1.ID, "--summary"}, fix.ExecSumApp1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shs(t, tt.args...)
+			if got != tt.want {
+				t.Errorf("executors output mismatch\nwant:\n%s\ngot:\n%s", tt.want, got)
+			}
+		})
+	}
+}
+
+func TestCompare(t *testing.T) {
+	tests := []struct {
+		name   string
+		execID string
+		want   string
+	}{
+		{"sql6_join", "6", fix.CompareSQL6},
+		{"sql8_spill", "8", fix.CompareSQL8},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shs(t, "compare", "--app-a", fix.App1.ID, "--app-b", fix.App2.ID, tt.execID, tt.execID)
+			if got != tt.want {
+				t.Errorf("compare output mismatch\nwant:\n%s\ngot:\n%s", tt.want, got)
+			}
+		})
+	}
+}
+
+func TestSQLSummary(t *testing.T) {
+	tests := []struct {
+		name string
+		app  string
+		want string
+	}{
+		{"app1", fix.App1.ID, fix.SQL6SumApp1},
+		{"app2", fix.App2.ID, fix.SQL6SumApp2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shs(t, "sql", "-a", tt.app, "6", "--summary")
+			if got != tt.want {
+				t.Errorf("sql summary output mismatch\nwant:\n%s\ngot:\n%s", tt.want, got)
+			}
+		})
+	}
+}
+
+// TestSQLPlan verifies plan output via SHA256 hash since the full plan text
+// is too large to embed in fixtures. Uses --initial-plan to cover both final
+// and initial plans in one check.
+func TestSQLPlan(t *testing.T) {
+	tests := []struct {
+		name string
+		app  string
+		want string
+	}{
+		{"app1", fix.App1.ID, fix.SQL6PlanApp1},
+		{"app2", fix.App2.ID, fix.SQL6PlanApp2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shs(t, "sql", "-a", tt.app, "6", "--initial-plan")
+			hash := fmt.Sprintf("%x", sha256.Sum256([]byte(got)))
+			if hash != tt.want {
+				t.Errorf("sql plan hash mismatch\nwant: %s\ngot:  %s", tt.want, hash)
+			}
+		})
+	}
+}

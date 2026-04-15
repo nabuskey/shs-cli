@@ -1,0 +1,4 @@
+servers:
+  default:
+    default: true
+    url: "http://localhost:18080"
