@@ -120,12 +120,12 @@ func listAppsAllServers(cmd *cobra.Command, status string, limit int, sortBy str
 		}
 		resp, err := c.ListApplicationsWithResponse(cmd.Context(), params)
 		if err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "warning: server %s: %v\n", name, err)
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "warning: server %s: %v\n", name, err)
 			continue
 		}
 		body, err := util.CheckResponse(resp.JSON200, resp.HTTPResponse.Status)
 		if err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "warning: server %s: %v\n", name, err)
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "warning: server %s: %v\n", name, err)
 			continue
 		}
 		for _, app := range *body {
