@@ -62,14 +62,14 @@ func newSQLCmd() *cobra.Command {
 }
 
 type sqlSummaryExec struct {
-	ID             *int                          `json:"id,omitempty" yaml:"id,omitempty"`
-	Status         *client.SQLExecutionStatus    `json:"status,omitempty" yaml:"status,omitempty"`
-	Description    *string                       `json:"description,omitempty" yaml:"description,omitempty"`
-	SubmissionTime *string                       `json:"submissionTime,omitempty" yaml:"submissionTime,omitempty"`
-	Duration       *int64                        `json:"duration,omitempty" yaml:"duration,omitempty"`
-	SuccessJobIds  *[]int                        `json:"successJobIds,omitempty" yaml:"successJobIds,omitempty"`
-	FailedJobIds   *[]int                        `json:"failedJobIds,omitempty" yaml:"failedJobIds,omitempty"`
-	RunningJobIds  *[]int                        `json:"runningJobIds,omitempty" yaml:"runningJobIds,omitempty"`
+	ID             *int                       `json:"id,omitempty" yaml:"id,omitempty"`
+	Status         *client.SQLExecutionStatus `json:"status,omitempty" yaml:"status,omitempty"`
+	Description    *string                    `json:"description,omitempty" yaml:"description,omitempty"`
+	SubmissionTime *string                    `json:"submissionTime,omitempty" yaml:"submissionTime,omitempty"`
+	Duration       *int64                     `json:"duration,omitempty" yaml:"duration,omitempty"`
+	SuccessJobIds  *[]int                     `json:"successJobIds,omitempty" yaml:"successJobIds,omitempty"`
+	FailedJobIds   *[]int                     `json:"failedJobIds,omitempty" yaml:"failedJobIds,omitempty"`
+	RunningJobIds  *[]int                     `json:"runningJobIds,omitempty" yaml:"runningJobIds,omitempty"`
 }
 
 type sqlDetail struct {

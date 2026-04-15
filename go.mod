@@ -5,6 +5,7 @@ go 1.25.6
 require (
 	github.com/goccy/go-json v0.10.5
 	github.com/goccy/go-yaml v1.19.2
+	github.com/google/go-cmp v0.7.0
 	github.com/knadh/koanf/parsers/yaml v1.1.0
 	github.com/knadh/koanf/providers/env v1.1.0
 	github.com/knadh/koanf/providers/file v1.2.1

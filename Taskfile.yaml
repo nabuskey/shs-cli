@@ -37,6 +37,13 @@ tasks:
     cmds:
       - go test ./... -count=1
 
+  test-e2e:
+    desc: Run e2e tests (starts/stops SHS automatically)
+    deps: [build, start-shs]
+    cmds:
+      - defer: task stop-shs
+      - go test ./e2e/ -v -count=1
+
   install-golangci-lint:
     desc: Install golangci-lint binary
     vars:
@@ -73,7 +80,7 @@ tasks:
     cmds:
       - mkdir -p e2e/spark-events
       # App 1: small memory, broadcast disabled, 4 shuffle partitions → SortMergeJoin
-      - docker rm -f {{.CONTAINER}} || true
+      - docker rm -f {{.CONTAINER}}
       - docker run --name {{.CONTAINER}}
           -v $(pwd)/e2e/generate_events.py:/app/generate_events.py:ro
           {{.SPARK_IMAGE}}
@@ -106,7 +113,7 @@ tasks:
   start-shs:
     desc: Start Spark History Server against e2e event logs
     cmds:
-      - docker rm -f {{.SHS_CONTAINER}} || true
+      - docker rm -f {{.SHS_CONTAINER}}
       - docker run -d --name {{.SHS_CONTAINER}}
           -p 18080:18080
           -v $(pwd)/e2e/spark-events:/tmp/spark-events:ro
@@ -129,4 +136,4 @@ tasks:
   stop-shs:
     desc: Stop the e2e Spark History Server
     cmds:
-      - docker rm -f {{.SHS_CONTAINER}} || true
+      - docker rm -f {{.SHS_CONTAINER}}

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-yaml"
+	"github.com/google/go-cmp/cmp"
 )
 
 type appInfo struct {
@@ -64,8 +65,8 @@ func shs(t *testing.T, args ...string) string {
 
 func TestApps(t *testing.T) {
 	got := shs(t, "apps")
-	if got != fix.Apps {
-		t.Errorf("apps output mismatch\nwant:\n%s\ngot:\n%s", fix.Apps, got)
+	if diff := cmp.Diff(fix.Apps, got); diff != "" {
+		t.Errorf("mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -81,8 +82,8 @@ func TestJobs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := shs(t, "jobs", "-a", tt.app, "--limit", "0")
-			if got != tt.want {
-				t.Errorf("jobs output mismatch\nwant:\n%s\ngot:\n%s", tt.want, got)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -100,8 +101,8 @@ func TestStageErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := shs(t, "stages", "-a", tt.app, "5", "--errors")
-			if got != tt.want {
-				t.Errorf("stage errors output mismatch\nwant:\n%s\ngot:\n%s", tt.want, got)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -119,8 +120,8 @@ func TestSQL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := shs(t, "sql", "-a", tt.app, "--limit", "0")
-			if got != tt.want {
-				t.Errorf("sql output mismatch\nwant:\n%s\ngot:\n%s", tt.want, got)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -138,8 +139,8 @@ func TestSort(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := shs(t, tt.args...)
-			if got != tt.want {
-				t.Errorf("sort output mismatch\nwant:\n%s\ngot:\n%s", tt.want, got)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -157,8 +158,8 @@ func TestExecutors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := shs(t, tt.args...)
-			if got != tt.want {
-				t.Errorf("executors output mismatch\nwant:\n%s\ngot:\n%s", tt.want, got)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("executors mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -176,11 +177,19 @@ func TestCompare(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := shs(t, "compare", "--app-a", fix.App1.ID, "--app-b", fix.App2.ID, tt.execID, tt.execID)
-			if got != tt.want {
-				t.Errorf("compare output mismatch\nwant:\n%s\ngot:\n%s", tt.want, got)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
+	// Cross-server: same SHS via two config entries (default + secondary)
+	t.Run("cross_server", func(t *testing.T) {
+		got := shs(t, "compare", "--server-a", "default", "--server-b", "secondary",
+			"--app-a", fix.App1.ID, "--app-b", fix.App2.ID, "6", "6")
+		if diff := cmp.Diff(fix.CompareSQL6, got); diff != "" {
+			t.Errorf("mismatch (-want +got):\n%s", diff)
+		}
+	})
 }
 
 func TestSQLSummary(t *testing.T) {
@@ -195,8 +204,8 @@ func TestSQLSummary(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := shs(t, "sql", "-a", tt.app, "6", "--summary")
-			if got != tt.want {
-				t.Errorf("sql summary output mismatch\nwant:\n%s\ngot:\n%s", tt.want, got)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
