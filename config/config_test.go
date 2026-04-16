@@ -69,8 +69,8 @@ servers:
     auth:
       token: original
 `)
-	t.Setenv("SHS_SERVERS_LOCAL_URL", "http://overridden:9999")
-	t.Setenv("SHS_SERVERS_LOCAL_AUTH_TOKEN", "env-token")
+	t.Setenv("SHS_CLI__SERVERS__LOCAL__URL", "http://overridden:9999")
+	t.Setenv("SHS_CLI__SERVERS__LOCAL__AUTH__TOKEN", "env-token")
 
 	cfg, err := Load(p)
 	if err != nil {

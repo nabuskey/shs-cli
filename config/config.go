@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/knadh/koanf/parsers/yaml"
-	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/env/v2"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 )
@@ -17,10 +17,15 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("reading config: %w", err)
 	}
 
-	// SHS_SERVERS_LOCAL_URL -> servers.local.url
-	if err := k.Load(env.Provider("SHS_", ".", func(s string) string {
-		return strings.ToLower(strings.ReplaceAll(
-			strings.TrimPrefix(s, "SHS_"), "_", "."))
+	// SHS_CLI__SERVERS__LOCAL__URL -> servers.local.url
+	// Double underscore (__) separates nesting levels.
+	if err := k.Load(env.Provider(".", env.Opt{
+		Prefix: "SHS_CLI__",
+		TransformFunc: func(k, v string) (string, any) {
+			key := strings.ToLower(strings.TrimPrefix(k, "SHS_CLI__"))
+			key = strings.ReplaceAll(key, "__", ".")
+			return key, v
+		},
 	}), nil); err != nil {
 		return nil, fmt.Errorf("loading env: %w", err)
 	}
